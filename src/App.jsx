@@ -406,7 +406,7 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.32</span>
+              Eugene Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.33</span>
             </h1>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">RM Dispatch Reality Simulator</p>
           </div>
@@ -707,70 +707,6 @@ export default function App() {
               <Truck size={240} className="absolute -right-20 -bottom-20 opacity-[0.04] pointer-events-none rotate-12 transition-transform group-hover:scale-110 duration-1000" />
             </section>
 
-            {/* Visual Balance Graph */}
-            <section className="bg-slate-50 p-6 rounded-[2.2rem] border border-slate-100 shadow-inner">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                  <BarChart3 size={18} className="text-indigo-600" /> 시간대별 차량 수급 흐름
-                </h3>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase">
-                    <div className="w-2.5 h-2.5 bg-indigo-500 rounded-sm shadow-sm" /> 대기 자차
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase">
-                    <div className="w-2.5 h-2.5 bg-sky-400 rounded-sm shadow-sm" /> 대기 용차
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase">
-                    <div className="w-2.5 h-2.5 bg-red-500 rounded-sm shadow-sm" /> 부족 대수
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative h-44 flex items-end gap-[2px] px-2 border-b-2 border-slate-200 mb-10">
-                {analysis.timeSlots.map((slot, i) => {
-                  const isShortage = slot.shortage > 0;
-                  const displayValue = isShortage ? slot.shortage : slot.available;
-                  const maxScale = Math.max(analysis.totalActualTrucks, analysis.absoluteMaxShortage, 10);
-                  const heightPercentage = Math.min(100, (displayValue / maxScale) * 100);
-                  
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                      <div className="absolute bottom-full mb-3 hidden group-hover:block z-40 bg-slate-900 text-white p-2.5 rounded-xl whitespace-nowrap shadow-2xl scale-90 origin-bottom transition-all">
-                        <p className="text-[10px] font-black text-indigo-400 mb-0.5">{slot.time}</p>
-                        <p className="text-xs font-bold">
-                          {isShortage ? `부족대수: ${slot.shortage}대` : `대기: 자차 ${slot.availableOwn}대 + 용차 ${slot.availableExt}대`}
-                        </p>
-                      </div>
-
-                      {isShortage ? (
-                        <div 
-                          style={{ height: `${Math.max(4, heightPercentage)}%` }} 
-                          className="w-full rounded-t-md transition-all duration-500 transform group-hover:scale-x-125 origin-bottom bg-red-500 hover:bg-red-400 shadow-sm"
-                        />
-                      ) : (
-                        <div 
-                          style={{ height: `${Math.max(4, heightPercentage)}%` }} 
-                          className="w-full flex flex-col-reverse justify-start transition-all duration-500 transform group-hover:scale-x-125 origin-bottom rounded-t-md overflow-hidden shadow-sm"
-                        >
-                           <div style={{ height: `${(slot.availableOwn / (slot.availableOwn + slot.availableExt || 1)) * 100}%` }} className="w-full bg-indigo-500 hover:bg-indigo-400 transition-colors" />
-                           {slot.availableExt > 0 && (
-                             <div style={{ height: `${(slot.availableExt / (slot.availableOwn + slot.availableExt)) * 100}%` }} className="w-full bg-sky-400 hover:bg-sky-300 transition-colors border-b border-indigo-900/10" />
-                           )}
-                        </div>
-                      )}
-
-                      {slot.time.endsWith(':00') && (
-                        <div className="absolute top-full mt-3 flex flex-col items-center">
-                          <div className="w-[1px] h-2 bg-slate-300 mb-1" />
-                          <span className="text-[10px] font-black text-slate-400 tracking-tighter whitespace-nowrap">{slot.time.split(':')[0]}시</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
             {/* Strategic Diagnosis */}
             <section className="space-y-3 pb-12">
               <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] px-2 flex items-center gap-2">
@@ -1026,7 +962,7 @@ export default function App() {
                   <div className="flex justify-between items-center mt-4">
                     <p className="text-[11px] text-slate-500 font-bold bg-slate-50 py-2 px-5 rounded-xl border border-slate-100 flex items-center gap-5">
                       <span><span className="text-orange-500 font-black">■</span> 물량 손실</span>
-                      <span><span className="text-emerald-500 font-black">■</span> 목표 달성</span>
+                      <span><span className="text emerald-500 font-black">■</span> 목표 달성</span>
                       <span><span className="text-slate-400 font-black">■</span> 공장(B/P) 한계</span>
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold pr-2 tracking-tight">
