@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Factory, Truck, Clock, AlertTriangle, CheckCircle2, 
   Settings2, Plus, Trash2, Coffee, TrendingUp, Info, Zap, 
   Calendar, BarChart3, Activity, ShieldAlert, HelpCircle, X, LayoutTemplate,
-  Table as TableIcon
+  Table as TableIcon, Download, Upload
 } from 'lucide-react';
 
 // --- Preset Data ---
@@ -38,6 +38,8 @@ export default function App() {
   // --- 1. State Management ---
   const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
   const [activeModal, setActiveModal] = useState(null); 
+  const fileInputRef = useRef(null);
+
   const [factoryConfig, setFactoryConfig] = useState({
     bps: [{ id: 1, capacity: 210 }],
     truckVolume: 6,       
@@ -69,8 +71,9 @@ export default function App() {
 
   // --- 2. Utilities ---
   const timeToMinutes = (timeStr) => {
+    if (!timeStr || !timeStr.includes(':')) return 0;
     const [hrs, mins] = timeStr.split(':').map(Number);
-    return hrs * 60 + mins;
+    return (hrs || 0) * 60 + (mins || 0);
   };
 
   const minutesToTime = (totalMins) => {
@@ -85,6 +88,67 @@ export default function App() {
       try { e.target.showPicker(); } catch (err) {}
     }
   };
+
+  // --- CSV Import / Export Handlers ---
+  const downloadTemplate = () => {
+    // UTF-8 BOM 추가 (엑셀에서 한글 깨짐 방지)
+    const bom = "\uFEFF";
+    const headers = "현장명,주문량(㎥),개시시각(HH:MM),이동시간(분),타설시간(분),복귀시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(자차우선/용차우선/무관)\n";
+    const sample1 = "A아파트 1공구,120,08:00,30,40,30,10,X,0,자차우선\n";
+    const sample2 = "B상가 신축,60,09:30,20,30,20,0,O,5,용차우선\n";
+    
+    const blob = new Blob([bom + headers + sample1 + sample2], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "현장업로드_표준양식.csv";
+    link.click();
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const csvText = event.target.result;
+      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+      
+      if (lines.length <= 1) {
+        alert("데이터가 없거나 잘못된 형식입니다.");
+        return;
+      }
+
+      const newSites = lines.slice(1).map((line, index) => {
+        // 콤마로 분리 (따옴표 처리는 제외한 심플 버전)
+        const cols = line.split(',');
+        
+        return {
+          id: Date.now() + index,
+          name: cols[0]?.trim() || `업로드 현장 ${index + 1}`,
+          volume: Number(cols[1]) || 0,
+          startTime: cols[2]?.trim() || "08:00",
+          toTime: Number(cols[3]) || 0,
+          unloadTime: Number(cols[4]) || 0,
+          backTime: Number(cols[5]) || 0,
+          targetInterval: Number(cols[6]) || 0,
+          isSpecial: cols[7]?.trim().toUpperCase() === 'O',
+          specialTime: Number(cols[8]) || 0,
+          strategy: cols[9]?.trim() || "자차우선"
+        };
+      });
+
+      // 기존 항목 중 비어있는 초기 세팅 항목은 지우고, 새 데이터 추가
+      setSites(prev => {
+        const filteredPrev = prev.filter(s => s.name.trim() !== "" || s.volume > 0);
+        return [...filteredPrev, ...newSites];
+      });
+      
+      // 파일 입력창 초기화 (동일 파일 재업로드 방지)
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
 
   // --- 3. Core Simulation Logic ---
   const analysis = useMemo(() => {
@@ -406,7 +470,7 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.33</span>
+              Eugene Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.34</span>
             </h1>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">RM Dispatch Reality Simulator</p>
           </div>
@@ -526,8 +590,24 @@ export default function App() {
 
           <section className="space-y-4 pb-12">
             <div className="flex justify-between items-center px-2">
-              <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Calendar size={16} /> 현장 출하 대기열</h2>
-              <button onClick={addSite} className="bg-indigo-950 text-white px-5 py-2 rounded-xl text-[10px] font-black hover:bg-black flex items-center gap-2 shadow-lg active:scale-95"><Plus size={14} /> 현장 추가</button>
+              <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <Calendar size={16} /> 현장 출하 대기열
+              </h2>
+              
+              {/* --- CSV Upload / Download Buttons --- */}
+              <div className="flex items-center gap-2">
+                <button onClick={downloadTemplate} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors border border-slate-200">
+                  <Download size={14} /> 양식 다운
+                </button>
+                <label className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer active:scale-95">
+                  <Upload size={14} /> CSV 업로드
+                  <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
+                </label>
+                <div className="w-[1px] h-4 bg-slate-300 mx-1"></div>
+                <button onClick={addSite} className="bg-indigo-950 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-black flex items-center gap-2 shadow-lg active:scale-95">
+                  <Plus size={14} /> 수동 추가
+                </button>
+              </div>
             </div>
 
             {analysis.calculatedSites.map(site => (
@@ -962,7 +1042,7 @@ export default function App() {
                   <div className="flex justify-between items-center mt-4">
                     <p className="text-[11px] text-slate-500 font-bold bg-slate-50 py-2 px-5 rounded-xl border border-slate-100 flex items-center gap-5">
                       <span><span className="text-orange-500 font-black">■</span> 물량 손실</span>
-                      <span><span className="text emerald-500 font-black">■</span> 목표 달성</span>
+                      <span><span className="text-emerald-500 font-black">■</span> 목표 달성</span>
                       <span><span className="text-slate-400 font-black">■</span> 공장(B/P) 한계</span>
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold pr-2 tracking-tight">
