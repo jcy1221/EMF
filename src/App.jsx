@@ -620,7 +620,7 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100 hidden md:block"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-base md:text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.40</span>
+              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.41</span>
             </h1>
             <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest hidden md:block">MT Dispatch Reality Simulator</p>
           </div>
@@ -989,7 +989,7 @@ export default function App() {
                       <div className="flex-1">
                         <p className="text-[10px] md:text-[11px] text-orange-900 font-black uppercase mb-1">일부 지연 발생</p>
                         <p className="text-[9px] md:text-[10px] text-orange-700 leading-relaxed font-bold">
-                          물량은 100% 소화하지만 피크타임(오전)에 현장 배차 간격이 늘어집니다. 운송 효율은 양호하나, 현장의 타설 끊김 클레임에 대비해야 합니다.
+                          물량은 100% 소화하지만 피크타임에 현장 배차 간격이 약간 지연될 수 있습니다. 전체적인 운송 효율은 양호한 편이나, 현장에서 타설 끊김 클레임이 발생할 수 있으니 유의가 필요합니다.
                         </p>
                       </div>
                     </div>
