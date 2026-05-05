@@ -3,7 +3,7 @@ import {
   Factory, Truck, Clock, AlertTriangle, CheckCircle2, 
   Settings2, Plus, Trash2, Coffee, TrendingUp, Info, Zap, 
   Calendar, BarChart3, Activity, ShieldAlert, HelpCircle, X, LayoutTemplate,
-  Table as TableIcon, Download, Upload, Share2, Cloud // using standard icons
+  Table as TableIcon, Download, Upload, Share2, Cloud, Link // Added Link icon
 } from 'lucide-react';
 
 // --- Firebase Imports ---
@@ -196,11 +196,39 @@ export default function App() {
     }
   };
 
-  // --- 5. Cloud Share Handler ---
+  // --- 5. Share Handlers ---
+  
+  // 일반 공유 (긴 URL - Vercel 등 DB 없는 환경에서도 동작)
+  const handleLegacyShare = () => {
+    try {
+      const stateToShare = { factoryConfig, sites, selectedPreset };
+      const encodedState = btoa(encodeURIComponent(JSON.stringify(stateToShare)));
+      
+      const url = new URL(window.location.href);
+      url.searchParams.delete('id'); // 기존 클라우드 ID 파라미터 삭제
+      url.searchParams.set('share', encodedState);
+      
+      const tempInput = document.createElement('input');
+      tempInput.value = url.toString();
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      
+      setToastMsg('긴 URL 링크가 복사되었습니다! (임시 공유용) 🔗');
+      setTimeout(() => setToastMsg(''), 3500);
+    } catch (err) {
+      console.error("일반 공유 실패:", err);
+      setToastMsg('링크 생성에 실패했습니다. (데이터가 너무 많을 수 있습니다)');
+      setTimeout(() => setToastMsg(''), 3000);
+    }
+  };
+
+  // 클라우드 공유 (짧은 URL - 자체 DB 필요)
   const handleShare = async () => {
     // Vercel 환경 방어 코드
     if (!db || !auth) {
-      setToastMsg('⚠️ 외부 서버(Vercel 등)에서는 자체 DB를 연결해야 공유 기능을 쓸 수 있습니다.');
+      setToastMsg('⚠️ 외부 서버(Vercel 등)에서는 자체 DB를 연결해야 클라우드 기능을 쓸 수 있습니다.');
       setTimeout(() => setToastMsg(''), 3500);
       return;
     }
@@ -639,13 +667,20 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100 hidden md:block"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-base md:text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.42</span>
+              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.43</span>
             </h1>
             <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest hidden md:block">MT Dispatch Reality Simulator</p>
           </div>
         </div>
         
         <div className="flex gap-2 md:gap-3">
+          {/* 일반 공유 (긴 URL) 버튼 추가 */}
+          <button onClick={handleLegacyShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors shadow-sm active:scale-95 group">
+            <Link size={14} className="group-hover:text-slate-800" />
+            <span className="text-[10px] md:text-xs font-black uppercase">일반 공유</span>
+          </button>
+
+          {/* 클라우드 공유 버튼 */}
           <button onClick={handleShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-colors shadow-sm active:scale-95 group">
             <Share2 size={14} className="group-hover:text-indigo-600" />
             <span className="text-[10px] md:text-xs font-black uppercase">클라우드 공유</span>
