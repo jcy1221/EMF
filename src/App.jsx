@@ -3,7 +3,7 @@ import {
   Factory, Truck, Clock, AlertTriangle, CheckCircle2, 
   Settings2, Plus, Trash2, Coffee, TrendingUp, Info, Zap, 
   Calendar, BarChart3, Activity, ShieldAlert, HelpCircle, X, LayoutTemplate,
-  Table as TableIcon, Download, Upload, Monitor
+  Table as TableIcon, Download, Upload, Monitor, Share2
 } from 'lucide-react';
 
 // --- Preset Data ---
@@ -35,30 +35,10 @@ const FACTORY_PRESETS = {
 };
 
 export default function App() {
-  // --- Mobile Detect ---
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResizeOrDetect = () => {
-      // 1. 실제 모바일 기기(OS)인지 User-Agent로 판별
-      const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
-      const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-      
-      // 2. PC화면 분할(스플릿 스크린)을 고려하여 해상도 기준을 1024px -> 768px로 완화
-      const isExtremelyNarrow = window.innerWidth < 768;
-
-      // 실제 폰/태블릿이거나, PC 창이 극단적으로 좁은 경우에만 모바일 안내 화면 표시
-      setIsMobile(isRealMobileOS || isExtremelyNarrow);
-    };
-    
-    // 초기 로드 시 체크
-    handleResizeOrDetect();
-    
-    window.addEventListener('resize', handleResizeOrDetect);
-    return () => window.removeEventListener('resize', handleResizeOrDetect);
-  }, []);
-
   // --- 1. State Management ---
+  const [isMobile, setIsMobile] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  
   const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
   const [activeModal, setActiveModal] = useState(null); 
   const fileInputRef = useRef(null);
@@ -92,6 +72,36 @@ export default function App() {
     }
   ]);
 
+  // --- Initialize from Shared URL & Mobile Detect ---
+  useEffect(() => {
+    // 1. URL 파라미터에서 공유된 데이터 복원
+    const params = new URLSearchParams(window.location.search);
+    const shareData = params.get('share');
+    if (shareData) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(atob(shareData)));
+        if (decoded.factoryConfig) setFactoryConfig(decoded.factoryConfig);
+        if (decoded.sites) setSites(decoded.sites);
+        if (decoded.selectedPreset) setSelectedPreset(decoded.selectedPreset);
+      } catch (e) {
+        console.error("공유 데이터 파싱 실패", e);
+      }
+    }
+
+    // 2. 모바일 디바이스 또는 좁은 창 감지
+    const handleResizeOrDetect = () => {
+      const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
+      const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      const isExtremelyNarrow = window.innerWidth < 768;
+      
+      setIsMobile(isRealMobileOS || isExtremelyNarrow);
+    };
+    
+    handleResizeOrDetect();
+    window.addEventListener('resize', handleResizeOrDetect);
+    return () => window.removeEventListener('resize', handleResizeOrDetect);
+  }, []);
+
   // --- 2. Utilities ---
   const timeToMinutes = (timeStr) => {
     if (!timeStr || !timeStr.includes(':')) return 0;
@@ -110,6 +120,26 @@ export default function App() {
     if (e.target.showPicker) {
       try { e.target.showPicker(); } catch (err) {}
     }
+  };
+
+  // --- 3. URL Share Handler ---
+  const handleShare = () => {
+    const stateToShare = { factoryConfig, sites, selectedPreset };
+    // JSON 직렬화 후 Base64 + URI 인코딩으로 안전한 문자열 생성
+    const encoded = btoa(encodeURIComponent(JSON.stringify(stateToShare)));
+    const url = new URL(window.location.href);
+    url.searchParams.set('share', encoded);
+    
+    // 클립보드 복사
+    const tempInput = document.createElement('input');
+    tempInput.value = url.toString();
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    
+    setToastMsg('현재 시뮬레이션 결과 링크가 복사되었습니다! 🎉');
+    setTimeout(() => setToastMsg(''), 3000);
   };
 
   // --- CSV Import / Export Handlers ---
@@ -168,7 +198,7 @@ export default function App() {
   };
 
 
-  // --- 3. Core Simulation Logic ---
+  // --- 4. Core Simulation Logic ---
   const analysis = useMemo(() => {
     const totalCapaPerHour = factoryConfig.bps.reduce((sum, bp) => sum + bp.capacity, 0);
     const avgProductionInterval = totalCapaPerHour > 0 ? (6 / totalCapaPerHour) * 60 : 0;
@@ -479,7 +509,7 @@ export default function App() {
     };
   }, [sites, factoryConfig]);
 
-  // --- 4. Handlers ---
+  // --- 5. Handlers ---
   const handlePresetChange = (e) => {
     const presetName = e.target.value;
     setSelectedPreset(presetName);
@@ -496,321 +526,288 @@ export default function App() {
   const updateSite = (id, field, val) => setSites(sites.map(s => s.id === id ? { ...s, [field]: val } : s));
   const removeSite = (id) => setSites(sites.filter(s => s.id !== id));
 
-  // --- Mobile Fallback UI ---
-  if (isMobile) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center select-none">
-        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl max-w-sm w-full space-y-6 border border-slate-100 flex flex-col items-center">
-          <div className="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mb-2 shadow-inner">
-            <Monitor className="text-indigo-600" size={40} strokeWidth={1.5} />
-          </div>
-          
-          <div className="space-y-2">
-            <h2 className="text-xl font-black text-indigo-950 tracking-tight">PC 환경 권장</h2>
-            <div className="w-10 h-1 bg-indigo-500 mx-auto rounded-full"></div>
-          </div>
-          
-          <p className="text-sm font-bold text-slate-500 leading-relaxed pt-2">
-            현재 뷰어 화면은 모바일에서 지원되지 않습니다.<br/>
-            시뮬레이션 환경을 넓게 보시려면<br/>
-            <span className="text-indigo-600 font-black bg-indigo-50 px-2 py-0.5 rounded-md mx-1">PC 전체 화면으로 접속</span>하여 주시기 바랍니다.
-          </p>
-          
-          <div className="pt-6 w-full">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 py-3 rounded-xl border border-slate-100">
-              Eugene MT Flow Optimizer v1.38
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Desktop Main UI ---
+  // --- Main UI Rendering ---
   return (
-    <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden select-none">
-      <header className="bg-white border-b border-slate-200 px-8 py-3 flex justify-between items-center shrink-0 z-30 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
+    <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden select-none relative">
+      <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-3 flex justify-between items-center shrink-0 z-30 shadow-sm relative">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100 hidden md:block"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
-            <h1 className="text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene MT Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.38</span>
+            <h1 className="text-base md:text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
+              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.39</span>
             </h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">MT Dispatch Reality Simulator</p>
+            <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest hidden md:block">MT Dispatch Reality Simulator</p>
           </div>
         </div>
         
-        <div className="flex gap-3">
-          <div className={`flex items-center gap-2 px-6 py-2 rounded-xl border-2 transition-all ${analysis.unmetVolume > 0 ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 shadow-sm'}`}>
-            <AlertTriangle size={16} className={analysis.unmetVolume > 0 ? 'animate-pulse' : ''} />
-            <span className="text-xs font-black uppercase tracking-tight">{analysis.unmetVolume > 0 ? `손실예상: ${analysis.unmetVolume} ㎥` : '100% 소화 가능'}</span>
+        <div className="flex gap-2 md:gap-3">
+          {/* 공유 버튼 추가 */}
+          <button onClick={handleShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-colors shadow-sm active:scale-95">
+            <Share2 size={14} />
+            <span className="text-[10px] md:text-xs font-black uppercase">링크 공유</span>
+          </button>
+
+          <div className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 rounded-xl border-2 transition-all ${analysis.unmetVolume > 0 ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 shadow-sm'}`}>
+            <AlertTriangle size={14} className={analysis.unmetVolume > 0 ? 'animate-pulse' : ''} />
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-tight whitespace-nowrap">{analysis.unmetVolume > 0 ? `손실예상: ${analysis.unmetVolume} ㎥` : '100% 소화 가능'}</span>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <div className="w-[52%] overflow-y-auto p-6 space-y-6 border-r border-slate-200 custom-scrollbar bg-slate-50/50">
-          <section className="bg-white p-6 rounded-[1.8rem] shadow-sm border border-slate-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Settings2 size={16} /> 공장 자원 및 운용 정책</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">공장 선택</span>
-                <select className="bg-indigo-50 text-indigo-700 text-[10px] font-black py-1.5 px-3 rounded-lg border border-indigo-100 outline-none cursor-pointer" value={selectedPreset} onChange={handlePresetChange}>
-                  {Object.keys(FACTORY_PRESETS).map(preset => <option key={preset} value={preset}>{preset}</option>)}
-                </select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">B/P Unit Capacity</p>
-                  <button onClick={addBP} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"><Plus size={12} /> 추가</button>
-                </div>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
-                  {factoryConfig.bps.map((bp, index) => (
-                    <div key={bp.id} className="group flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all">
-                      <div className="bg-white px-2.5 py-1 rounded-lg text-[10px] font-black text-indigo-900 shadow-sm border border-slate-100 uppercase font-mono tracking-tighter">B/P {index + 1}</div>
-                      <div className="flex-1 relative">
-                        <input type="number" className="w-full bg-transparent text-sm font-black outline-none focus:text-indigo-600" value={bp.capacity} onChange={(e) => updateBP(bp.id, e.target.value)} />
-                        <span className="absolute right-0 top-0.5 text-[9px] font-bold text-slate-300 uppercase">㎥/h</span>
-                      </div>
-                      <button onClick={() => removeBP(bp.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
-                    </div>
-                  ))}
+      <main className={`flex-1 flex overflow-hidden ${isMobile ? 'flex-col' : ''}`}>
+        
+        {/* 모바일 뷰일 경우 좌측(입력) 패널은 완전히 숨김 처리 */}
+        {!isMobile && (
+          <div className="w-[52%] overflow-y-auto p-6 space-y-6 border-r border-slate-200 custom-scrollbar bg-slate-50/50">
+            <section className="bg-white p-6 rounded-[1.8rem] shadow-sm border border-slate-200">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Settings2 size={16} /> 공장 자원 및 운용 정책</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">공장 선택</span>
+                  <select className="bg-indigo-50 text-indigo-700 text-[10px] font-black py-1.5 px-3 rounded-lg border border-indigo-100 outline-none cursor-pointer" value={selectedPreset} onChange={handlePresetChange}>
+                    {Object.keys(FACTORY_PRESETS).map(preset => <option key={preset} value={preset}>{preset}</option>)}
+                  </select>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 relative">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <label className="block text-[9px] font-black text-indigo-400 uppercase tracking-tight">보유 자차 (대)</label>
-                      <div className="relative group/tooltip flex items-center">
-                        <HelpCircle size={10} className="text-indigo-300 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                          당일 가동 예정인 지입MT 및 직영MT 대수
-                        </div>
-                      </div>
-                    </div>
-                    <input 
-                      type="number" 
-                      className="w-full bg-transparent text-xl font-black text-indigo-900 outline-none" 
-                      value={factoryConfig.ownTrucks === 0 ? '' : factoryConfig.ownTrucks} 
-                      placeholder="0"
-                      onChange={e => setFactoryConfig({...factoryConfig, ownTrucks: Number(e.target.value)})} 
-                    />
-                  </div>
-                  <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 relative">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <label className="block text-[9px] font-black text-orange-400 uppercase tracking-tight">용차 투입예정(대)</label>
-                      <div className="relative group/tooltip flex items-center">
-                        <HelpCircle size={10} className="text-orange-300 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                          실제 호출하여 운용할 용차 대수. 이 값에 따라 예상 출하량과 회전수가 달라집니다.
-                        </div>
-                      </div>
-                    </div>
-                    <input 
-                      type="number" 
-                      className="w-full bg-transparent text-xl font-black text-orange-600 outline-none" 
-                      value={factoryConfig.plannedExtTrucks === 0 ? '' : factoryConfig.plannedExtTrucks} 
-                      placeholder="0"
-                      onChange={e => setFactoryConfig({...factoryConfig, plannedExtTrucks: Number(e.target.value)})} 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 relative">
-                    <div className="flex items-center gap-1 mb-1">
-                      <label className="block text-[8px] font-bold text-slate-400 uppercase">공장로스(분)</label>
-                      <div className="relative group/tooltip flex items-center">
-                        <HelpCircle size={9} className="text-slate-400 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                          타설복귀 후 다음 상차시까지의 딜레이타임. (점심시간 30분 별도 적용)
-                        </div>
-                      </div>
-                    </div>
-                    <input type="number" className="w-full bg-transparent text-base font-black text-slate-700 outline-none" value={factoryConfig.internalLoss === 0 ? '' : factoryConfig.internalLoss} placeholder="0" onChange={e => setFactoryConfig({...factoryConfig, internalLoss: Number(e.target.value)})}/>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 relative">
-                    <div className="flex items-center gap-1 mb-1">
-                      <label className="block text-[8px] font-bold text-slate-400 uppercase">라스트오더</label>
-                      <div className="relative group/tooltip flex items-center">
-                        <HelpCircle size={9} className="text-slate-400 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-32 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                          마지막 상차 가능 시각
-                        </div>
-                      </div>
-                    </div>
-                    <input type="time" className="w-full bg-transparent text-base font-black text-slate-700 outline-none cursor-pointer p-0 h-[24px]" value={factoryConfig.endTime} onChange={e => setFactoryConfig({...factoryConfig, endTime: e.target.value})} onClick={handleTimeClick} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4 pb-12">
-            <div className="flex justify-between items-center px-2">
-              <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Calendar size={16} /> 현장 출하 대기열
-              </h2>
               
-              <div className="flex items-center gap-2">
-                <button onClick={downloadTemplate} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors border border-slate-200">
-                  <Download size={14} /> 양식 다운
-                </button>
-                <label className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer active:scale-95">
-                  <Upload size={14} /> CSV 업로드
-                  <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
-                </label>
-                <div className="w-[1px] h-4 bg-slate-300 mx-1"></div>
-                <button onClick={addSite} className="bg-indigo-950 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-black flex items-center gap-2 shadow-lg active:scale-95">
-                  <Plus size={14} /> 수동 추가
-                </button>
-              </div>
-            </div>
-
-            {analysis.calculatedSites.map(site => (
-              <div key={site.id} className="bg-white border border-slate-200 rounded-[1.8rem] overflow-hidden shadow-sm hover:shadow-md transition-all">
-                <div className="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm" />
-                    <input className="text-[14px] font-black bg-transparent border-none focus:ring-0 w-full p-0 text-slate-900 placeholder-slate-300" placeholder="현장명 입력" value={site.name} onChange={e => updateSite(site.id, 'name', e.target.value)} />
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">B/P Unit Capacity</p>
+                    <button onClick={addBP} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"><Plus size={12} /> 추가</button>
                   </div>
-                  <button onClick={() => removeSite(site.id)} className="text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                </div>
-                
-                <div className="grid grid-cols-12">
-                  <div className="col-span-4 p-5 border-r border-slate-100 bg-slate-50/20 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">주문량(㎥)</label>
-                        <input type="number" className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-indigo-700 outline-none shadow-sm" value={site.volume === 0 ? '' : site.volume} placeholder="0" onChange={(e) => updateSite(site.id, 'volume', Number(e.target.value))} />
-                      </div>
-                      <div>
-                        <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">개시시각</label>
-                        <div className="h-[38px] bg-white border border-slate-200 rounded-xl shadow-sm px-1 flex items-center">
-                          <input type="time" className="w-full bg-transparent text-[11px] font-black text-slate-700 outline-none cursor-pointer text-center" value={site.startTime} onChange={(e) => updateSite(site.id, 'startTime', e.target.value)} onClick={handleTimeClick} />
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                    {factoryConfig.bps.map((bp, index) => (
+                      <div key={bp.id} className="group flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all">
+                        <div className="bg-white px-2.5 py-1 rounded-lg text-[10px] font-black text-indigo-900 shadow-sm border border-slate-100 uppercase font-mono tracking-tighter">B/P {index + 1}</div>
+                        <div className="flex-1 relative">
+                          <input type="number" className="w-full bg-transparent text-sm font-black outline-none focus:text-indigo-600" value={bp.capacity} onChange={(e) => updateBP(bp.id, e.target.value)} />
+                          <span className="absolute right-0 top-0.5 text-[9px] font-bold text-slate-300 uppercase">㎥/h</span>
                         </div>
+                        <button onClick={() => removeBP(bp.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
                       </div>
-                    </div>
-                    <select className={`text-[10px] font-black p-3 rounded-xl border-none ring-1 w-full outline-none cursor-pointer ${site.strategy === '자차우선' ? 'bg-indigo-600 text-white ring-indigo-600' : site.strategy === '용차우선' ? 'bg-orange-500 text-white ring-orange-500' : 'bg-white text-slate-600 ring-slate-200'}`} value={site.strategy} onChange={e => updateSite(site.id, 'strategy', e.target.value)}>
-                      <option value="자차우선">자차우선</option><option value="용차우선">용차우선</option><option value="무관">방식 무관</option>
-                    </select>
+                    ))}
                   </div>
+                </div>
 
-                  <div className="col-span-8 p-5 space-y-5">
-                    <div className="grid grid-cols-4 gap-3">
-                      <div><label className="text-[7.5px] font-black text-slate-400 uppercase tracking-tighter mb-1.5 block">현장 이동(분)</label><input type="number" className="w-full p-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700" value={site.toTime === 0 ? '' : site.toTime} placeholder="0" onChange={e => updateSite(site.id, 'toTime', Number(e.target.value))} /></div>
-                      <div><label className="text-[7.5px] font-black text-slate-400 uppercase tracking-tighter mb-1.5 block">타설 시간(분)</label><input type="number" className="w-full p-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700" value={site.unloadTime === 0 ? '' : site.unloadTime} placeholder="0" onChange={e => updateSite(site.id, 'unloadTime', Number(e.target.value))} /></div>
-                      <div><label className="text-[7.5px] font-black text-slate-400 uppercase tracking-tighter mb-1.5 block">공장 복귀(분)</label><input type="number" className="w-full p-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700" value={site.backTime === 0 ? '' : site.backTime} placeholder="0" onChange={e => updateSite(site.id, 'backTime', Number(e.target.value))} /></div>
-                      <div>
-                        <div className="flex items-center gap-1 mb-1.5">
-                          <label className="text-[7.5px] font-black text-indigo-500 uppercase tracking-tighter">요구 간격(분)</label>
-                          <div className="relative group/tooltip flex items-center">
-                            <HelpCircle size={9} className="text-indigo-400 cursor-help" />
-                            <div className="absolute right-0 bottom-full mb-2 w-52 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                              현장의 원활한 타설(버퍼)을 위해 첫 10대(60㎥)는 간격을 무시하고 공장 최고 속도로 연속 배차되며, 11대째부터 이 간격이 적용됩니다.
-                            </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 relative">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <label className="block text-[9px] font-black text-indigo-400 uppercase tracking-tight">보유 자차 (대)</label>
+                        <div className="relative group/tooltip flex items-center">
+                          <HelpCircle size={10} className="text-indigo-300 cursor-help" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
+                            당일 가동 예정인 지입MT 및 직영MT 대수
                           </div>
                         </div>
-                        <input 
-                          type="number" 
-                          className={`w-full p-2 border rounded-xl text-xs font-black outline-none ${site.isCapaShort ? 'bg-red-50 border-red-200 text-red-600' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`} 
-                          value={site.targetInterval === 0 ? '' : site.targetInterval} 
-                          placeholder={`자동(${Math.round(analysis.avgProductionInterval || 10)})`}
-                          onChange={e => updateSite(site.id, 'targetInterval', Number(e.target.value))} 
-                        />
                       </div>
+                      <input 
+                        type="number" 
+                        className="w-full bg-transparent text-xl font-black text-indigo-900 outline-none" 
+                        value={factoryConfig.ownTrucks === 0 ? '' : factoryConfig.ownTrucks} 
+                        placeholder="0"
+                        onChange={e => setFactoryConfig({...factoryConfig, ownTrucks: Number(e.target.value)})} 
+                      />
                     </div>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" className="w-4 h-4 rounded-md text-indigo-600" checked={site.isSpecial} onChange={e => updateSite(site.id, 'isSpecial', e.target.checked)} />
-                          <span className="text-[10px] font-bold text-slate-500">특수배합</span>
-                        </label>
-                        {site.isSpecial && <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-100 rounded-lg text-[9px] font-black text-amber-700"><span className="italic">Add:</span><input type="number" className="w-6 bg-transparent outline-none text-center" value={site.specialTime} onChange={e => updateSite(site.id, 'specialTime', Number(e.target.value))} /><span>min</span></div>}
+                    <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 relative">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <label className="block text-[9px] font-black text-orange-400 uppercase tracking-tight">용차 투입예정(대)</label>
+                        <div className="relative group/tooltip flex items-center">
+                          <HelpCircle size={10} className="text-orange-300 cursor-help" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
+                            실제 호출하여 운용할 용차 대수. 이 값에 따라 예상 출하량과 회전수가 달라집니다.
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-3 text-[10px] font-black"><div className="text-slate-300"><span className="text-slate-500 uppercase">왕복시간</span> {site.rt}분</div></div>
+                      <input 
+                        type="number" 
+                        className="w-full bg-transparent text-xl font-black text-orange-600 outline-none" 
+                        value={factoryConfig.plannedExtTrucks === 0 ? '' : factoryConfig.plannedExtTrucks} 
+                        placeholder="0"
+                        onChange={e => setFactoryConfig({...factoryConfig, plannedExtTrucks: Number(e.target.value)})} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 relative">
+                      <div className="flex items-center gap-1 mb-1">
+                        <label className="block text-[8px] font-bold text-slate-400 uppercase">공장로스(분)</label>
+                        <div className="relative group/tooltip flex items-center">
+                          <HelpCircle size={9} className="text-slate-400 cursor-help" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
+                            타설복귀 후 다음 상차시까지의 딜레이타임. (점심시간 30분 별도 적용)
+                          </div>
+                        </div>
+                      </div>
+                      <input type="number" className="w-full bg-transparent text-base font-black text-slate-700 outline-none" value={factoryConfig.internalLoss === 0 ? '' : factoryConfig.internalLoss} placeholder="0" onChange={e => setFactoryConfig({...factoryConfig, internalLoss: Number(e.target.value)})}/>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 relative">
+                      <div className="flex items-center gap-1 mb-1">
+                        <label className="block text-[8px] font-bold text-slate-400 uppercase">라스트오더</label>
+                        <div className="relative group/tooltip flex items-center">
+                          <HelpCircle size={9} className="text-slate-400 cursor-help" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-32 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
+                            마지막 상차 가능 시각
+                          </div>
+                        </div>
+                      </div>
+                      <input type="time" className="w-full bg-transparent text-base font-black text-slate-700 outline-none cursor-pointer p-0 h-[24px]" value={factoryConfig.endTime} onChange={e => setFactoryConfig({...factoryConfig, endTime: e.target.value})} onClick={handleTimeClick} />
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </section>
-        </div>
+            </section>
 
-        {/* Right Panel */}
-        <div className="w-[48%] bg-white border-l border-slate-200 flex flex-col z-20 overflow-y-auto custom-scrollbar">
-          <div className="p-6 space-y-6">
+            <section className="space-y-4 pb-12">
+              <div className="flex justify-between items-center px-2">
+                <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Calendar size={16} /> 현장 출하 대기열
+                </h2>
+                
+                <div className="flex items-center gap-2">
+                  <button onClick={downloadTemplate} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors border border-slate-200">
+                    <Download size={14} /> 양식 다운
+                  </button>
+                  <label className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer active:scale-95">
+                    <Upload size={14} /> CSV 업로드
+                    <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
+                  </label>
+                  <div className="w-[1px] h-4 bg-slate-300 mx-1"></div>
+                  <button onClick={addSite} className="bg-indigo-950 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-black flex items-center gap-2 shadow-lg active:scale-95">
+                    <Plus size={14} /> 수동 추가
+                  </button>
+                </div>
+              </div>
+
+              {analysis.calculatedSites.map(site => (
+                <div key={site.id} className="bg-white border border-slate-200 rounded-[1.8rem] overflow-hidden shadow-sm hover:shadow-md transition-all">
+                  <div className="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm" />
+                      <input className="text-[14px] font-black bg-transparent border-none focus:ring-0 w-full p-0 text-slate-900 placeholder-slate-300" placeholder="현장명 입력" value={site.name} onChange={e => updateSite(site.id, 'name', e.target.value)} />
+                    </div>
+                    <button onClick={() => removeSite(site.id)} className="text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                  </div>
+                  
+                  <div className="grid grid-cols-12">
+                    <div className="col-span-4 p-5 border-r border-slate-100 bg-slate-50/20 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">주문량(㎥)</label>
+                          <input type="number" className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-indigo-700 outline-none shadow-sm" value={site.volume === 0 ? '' : site.volume} placeholder="0" onChange={(e) => updateSite(site.id, 'volume', Number(e.target.value))} />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">개시시각</label>
+                          <div className="h-[38px] bg-white border border-slate-200 rounded-xl shadow-sm px-1 flex items-center">
+                            <input type="time" className="w-full bg-transparent text-[11px] font-black text-slate-700 outline-none cursor-pointer text-center" value={site.startTime} onChange={(e) => updateSite(site.id, 'startTime', e.target.value)} onClick={handleTimeClick} />
+                          </div>
+                        </div>
+                      </div>
+                      <select className={`text-[10px] font-black p-3 rounded-xl border-none ring-1 w-full outline-none cursor-pointer ${site.strategy === '자차우선' ? 'bg-indigo-600 text-white ring-indigo-600' : site.strategy === '용차우선' ? 'bg-orange-500 text-white ring-orange-500' : 'bg-white text-slate-600 ring-slate-200'}`} value={site.strategy} onChange={e => updateSite(site.id, 'strategy', e.target.value)}>
+                        <option value="자차우선">자차우선</option><option value="용차우선">용차우선</option><option value="무관">방식 무관</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-8 p-5 space-y-5">
+                      <div className="grid grid-cols-4 gap-3">
+                        <div><label className="text-[7.5px] font-black text-slate-400 uppercase tracking-tighter mb-1.5 block">현장 이동(분)</label><input type="number" className="w-full p-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700" value={site.toTime === 0 ? '' : site.toTime} placeholder="0" onChange={e => updateSite(site.id, 'toTime', Number(e.target.value))} /></div>
+                        <div><label className="text-[7.5px] font-black text-slate-400 uppercase tracking-tighter mb-1.5 block">타설 시간(분)</label><input type="number" className="w-full p-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700" value={site.unloadTime === 0 ? '' : site.unloadTime} placeholder="0" onChange={e => updateSite(site.id, 'unloadTime', Number(e.target.value))} /></div>
+                        <div><label className="text-[7.5px] font-black text-slate-400 uppercase tracking-tighter mb-1.5 block">공장 복귀(분)</label><input type="number" className="w-full p-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700" value={site.backTime === 0 ? '' : site.backTime} placeholder="0" onChange={e => updateSite(site.id, 'backTime', Number(e.target.value))} /></div>
+                        <div>
+                          <div className="flex items-center gap-1 mb-1.5">
+                            <label className="text-[7.5px] font-black text-indigo-500 uppercase tracking-tighter">요구 간격(분)</label>
+                            <div className="relative group/tooltip flex items-center">
+                              <HelpCircle size={9} className="text-indigo-400 cursor-help" />
+                              <div className="absolute right-0 bottom-full mb-2 w-52 p-2 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
+                                현장의 원활한 타설(버퍼)을 위해 첫 10대(60㎥)는 간격을 무시하고 공장 최고 속도로 연속 배차되며, 11대째부터 이 간격이 적용됩니다.
+                              </div>
+                            </div>
+                          </div>
+                          <input 
+                            type="number" 
+                            className={`w-full p-2 border rounded-xl text-xs font-black outline-none ${site.isCapaShort ? 'bg-red-50 border-red-200 text-red-600' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`} 
+                            value={site.targetInterval === 0 ? '' : site.targetInterval} 
+                            placeholder={`자동(${Math.round(analysis.avgProductionInterval || 10)})`}
+                            onChange={e => updateSite(site.id, 'targetInterval', Number(e.target.value))} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" className="w-4 h-4 rounded-md text-indigo-600" checked={site.isSpecial} onChange={e => updateSite(site.id, 'isSpecial', e.target.checked)} />
+                            <span className="text-[10px] font-bold text-slate-500">특수배합</span>
+                          </label>
+                          {site.isSpecial && <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-100 rounded-lg text-[9px] font-black text-amber-700"><span className="italic">Add:</span><input type="number" className="w-6 bg-transparent outline-none text-center" value={site.specialTime} onChange={e => updateSite(site.id, 'specialTime', Number(e.target.value))} /><span>min</span></div>}
+                        </div>
+                        <div className="flex gap-3 text-[10px] font-black"><div className="text-slate-300"><span className="text-slate-500 uppercase">왕복시간</span> {site.rt}분</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </section>
+          </div>
+        )}
+
+        {/* Right Panel (Dashboard) - 모바일일 경우 전체 화면 크기로 적용됨 */}
+        <div className={`${isMobile ? 'w-full p-4' : 'w-[48%] p-6 border-l border-slate-200'} bg-white flex flex-col z-20 overflow-y-auto custom-scrollbar`}>
+          <div className="space-y-4 md:space-y-6">
             
             {/* Status Summary */}
-            <section className="bg-indigo-950 text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
+            <section className="bg-indigo-950 text-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl relative overflow-hidden group">
               <div className="relative z-10">
                 <h3 className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.4em] mb-6 flex items-center gap-2">
                   <Activity size={14} /> Operation Live Feed
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-6 mb-6 pb-6 border-b border-indigo-900/50">
+                <div className="grid grid-cols-2 gap-4 md:gap-6 mb-6 pb-6 border-b border-indigo-900/50">
                   <div>
-                    <p className="text-[10px] text-indigo-300 font-bold mb-1 uppercase tracking-tighter">예정량 (Total Demand)</p>
-                    <div className="flex items-baseline gap-1.5"><span className="text-4xl font-black tracking-tighter">{analysis.totalPlannedVolume}</span><span className="text-sm font-bold text-indigo-500">㎥</span></div>
+                    <p className="text-[9px] md:text-[10px] text-indigo-300 font-bold mb-1 uppercase tracking-tighter">예정량 (Total Demand)</p>
+                    <div className="flex items-baseline gap-1.5"><span className="text-3xl md:text-4xl font-black tracking-tighter">{analysis.totalPlannedVolume}</span><span className="text-sm font-bold text-indigo-500">㎥</span></div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-indigo-300 font-bold mb-1 uppercase tracking-tighter">예상 출하량 (Expected Output)</p>
+                    <p className="text-[9px] md:text-[10px] text-indigo-300 font-bold mb-1 uppercase tracking-tighter">예상 출하량 (Expected Output)</p>
                     <div className="flex items-baseline gap-1.5 justify-end">
-                      <span className={`text-4xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{analysis.expectedOutput}</span>
+                      <span className={`text-3xl md:text-4xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{analysis.expectedOutput}</span>
                       <span className="text-sm font-bold text-indigo-500">㎥</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
                   <div className="bg-indigo-900/40 p-4 rounded-2xl border border-indigo-800/50 relative overflow-visible flex flex-col">
-                     <div className="absolute top-0 right-0 w-10 h-10 bg-indigo-500/20 rounded-bl-full" />
+                     <div className="absolute top-0 right-0 w-8 h-8 md:w-10 md:h-10 bg-indigo-500/20 rounded-bl-full" />
                      <div className="flex items-center gap-1.5 mb-1 relative">
-                       <p className="text-[9px] text-indigo-400 font-bold uppercase flex items-center gap-1"><CheckCircle2 size={10} /> 지연 제로 대수</p>
-                       <div className="relative group/tooltip flex items-center">
-                         <HelpCircle size={10} className="text-indigo-400 cursor-help" />
-                         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-36 p-2 bg-slate-800 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                           100% 현장 요구 간격 충족
-                         </div>
-                       </div>
+                       <p className="text-[8px] md:text-[9px] text-indigo-400 font-bold uppercase flex items-center gap-1"><CheckCircle2 size={10} /> 지연 제로 대수</p>
                      </div>
                      <div className="flex items-end gap-2 mb-3">
-                       <p className="text-2xl font-black text-white">{analysis.idealPeakTrucks}<span className="text-xs ml-1 font-bold text-indigo-300">대</span></p>
+                       <p className="text-xl md:text-2xl font-black text-white">{analysis.idealPeakTrucks}<span className="text-[10px] md:text-xs ml-1 font-bold text-indigo-300">대</span></p>
                      </div>
-                     <div className="bg-indigo-950/60 p-2.5 rounded-xl mt-auto border border-indigo-800/30">
-                       <p className="text-[10px] text-indigo-200 font-bold flex items-center justify-between">
+                     <div className="bg-indigo-950/60 p-2 md:p-2.5 rounded-xl mt-auto border border-indigo-800/30">
+                       <p className="text-[9px] md:text-[10px] text-indigo-200 font-bold flex items-center justify-between">
                          <span>필요 용차:</span>
-                         <span className="text-sm font-black text-white">{Math.max(0, analysis.idealPeakTrucks - factoryConfig.ownTrucks)}<span className="text-[9px] font-normal ml-0.5 text-indigo-300">대</span></span>
+                         <span className="text-xs md:text-sm font-black text-white">{Math.max(0, analysis.idealPeakTrucks - factoryConfig.ownTrucks)}<span className="text-[8px] md:text-[9px] font-normal ml-0.5 text-indigo-300">대</span></span>
                        </p>
                      </div>
                   </div>
                   <div className="bg-orange-900/20 p-4 rounded-2xl border border-orange-900/50 relative overflow-visible flex flex-col">
-                     <div className="absolute top-0 right-0 w-10 h-10 bg-orange-500/10 rounded-bl-full" />
+                     <div className="absolute top-0 right-0 w-8 h-8 md:w-10 md:h-10 bg-orange-500/10 rounded-bl-full" />
                      <div className="flex items-center gap-1.5 mb-1 relative">
-                       <p className="text-[9px] text-orange-400 font-bold uppercase flex items-center gap-1"><AlertTriangle size={10} /> 물량 소화 최소 대수</p>
-                       <div className="relative group/tooltip flex items-center">
-                         <HelpCircle size={10} className="text-orange-400 cursor-help" />
-                         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-44 p-2 bg-slate-800 text-white text-[10px] font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                           지연은 발생하나 물량 100% 소화
-                         </div>
-                       </div>
+                       <p className="text-[8px] md:text-[9px] text-orange-400 font-bold uppercase flex items-center gap-1"><AlertTriangle size={10} /> 물량 소화 최소 대수</p>
                      </div>
                      <div className="flex items-end gap-2 mb-3">
-                       <p className="text-2xl font-black text-white">{analysis.minRequiredTrucks}{analysis.minRequiredTrucks !== "N/A" && <span className="text-xs ml-1 font-bold text-orange-300">대</span>}</p>
+                       <p className="text-xl md:text-2xl font-black text-white">{analysis.minRequiredTrucks}{analysis.minRequiredTrucks !== "N/A" && <span className="text-[10px] md:text-xs ml-1 font-bold text-orange-300">대</span>}</p>
                      </div>
-                     <div className="bg-orange-950/40 p-2.5 rounded-xl mt-auto border border-orange-800/30">
-                       <p className="text-[10px] text-orange-200 font-bold flex items-center justify-between">
+                     <div className="bg-orange-950/40 p-2 md:p-2.5 rounded-xl mt-auto border border-orange-800/30">
+                       <p className="text-[9px] md:text-[10px] text-orange-200 font-bold flex items-center justify-between">
                          <span>필요 용차:</span>
-                         <span className="text-sm font-black text-white">
+                         <span className="text-xs md:text-sm font-black text-white">
                            {analysis.minRequiredTrucks === "N/A" ? "-" : Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks)}
-                           {analysis.minRequiredTrucks !== "N/A" && <span className="text-[9px] font-normal ml-0.5 text-orange-300">대</span>}
+                           {analysis.minRequiredTrucks !== "N/A" && <span className="text-[8px] md:text-[9px] font-normal ml-0.5 text-orange-300">대</span>}
                          </span>
                        </p>
                      </div>
@@ -818,22 +815,22 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="flex justify-between items-center text-[10px] font-black bg-white/5 p-3 rounded-xl">
-                    <span className="text-slate-400">현재 계획된 총 대수: <span className="text-white text-xs">{analysis.totalActualTrucks}대</span></span>
+                  <div className="flex justify-between items-center text-[9px] md:text-[10px] font-black bg-white/5 p-3 rounded-xl">
+                    <span className="text-slate-400">현재 계획된 총 대수: <span className="text-white text-[10px] md:text-xs">{analysis.totalActualTrucks}대</span></span>
                     <span className="text-indigo-300">자차 {factoryConfig.ownTrucks}대 + 용차 {factoryConfig.plannedExtTrucks}대</span>
                   </div>
                   <div className="flex bg-indigo-900/40 rounded-xl border border-indigo-800/50 divide-x divide-indigo-800/50 overflow-hidden">
-                    <div className="flex-1 p-3 flex justify-between items-center">
-                      <span className="text-[9px] text-indigo-400 font-bold uppercase">자차 회전수</span>
-                      <span className="text-sm font-black text-white">{analysis.avgTripsOwn}<span className="text-[9px] ml-0.5 text-indigo-300">회전</span></span>
+                    <div className="flex-1 p-2 md:p-3 flex justify-between items-center">
+                      <span className="text-[8px] md:text-[9px] text-indigo-400 font-bold uppercase">자차 회전수</span>
+                      <span className="text-xs md:text-sm font-black text-white">{analysis.avgTripsOwn}<span className="text-[8px] md:text-[9px] ml-0.5 text-indigo-300">회전</span></span>
                     </div>
-                    <div className="flex-1 p-3 flex justify-between items-center">
-                      <span className="text-[9px] text-orange-400 font-bold uppercase">용차 회전수</span>
-                      <span className="text-sm font-black text-orange-400">{analysis.avgTripsExt}<span className="text-[9px] ml-0.5 text-orange-300">회전</span></span>
+                    <div className="flex-1 p-2 md:p-3 flex justify-between items-center">
+                      <span className="text-[8px] md:text-[9px] text-orange-400 font-bold uppercase">용차 회전수</span>
+                      <span className="text-xs md:text-sm font-black text-orange-400">{analysis.avgTripsExt}<span className="text-[8px] md:text-[9px] ml-0.5 text-orange-300">회전</span></span>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
                     <button onClick={() => setActiveModal('supply')} className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[9px] py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-lg active:scale-95">
                       <BarChart3 size={14} /> 수급 흐름
                     </button>
@@ -852,7 +849,7 @@ export default function App() {
 
             {/* Strategic Diagnosis */}
             <section className="space-y-3 pb-12">
-              <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] px-2 flex items-center gap-2">
+              <h3 className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] px-2 flex items-center gap-2">
                 <ShieldAlert size={16} className="text-indigo-600" /> Diagnostic Report
               </h3>
               
@@ -860,12 +857,12 @@ export default function App() {
                 
                 {/* 1. 핵심 운용 전략 진단 */}
                 {analysis.minRequiredTrucks === "N/A" || analysis.unmetVolume > 0 ? (
-                  <div className="p-5 bg-red-50 border border-red-100 rounded-3xl flex items-start gap-4 border-l-4 border-l-red-500 animate-pulse flex-col">
-                    <div className="flex gap-4 w-full items-start">
-                      <div className="bg-red-500 p-3 rounded-2xl shrink-0"><AlertTriangle className="text-white" size={22} /></div>
+                  <div className="p-4 md:p-5 bg-red-50 border border-red-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-3 md:gap-4 border-l-4 border-l-red-500 animate-pulse flex-col">
+                    <div className="flex gap-3 md:gap-4 w-full items-start">
+                      <div className="bg-red-500 p-2.5 md:p-3 rounded-2xl shrink-0"><AlertTriangle className="text-white" size={20} /></div>
                       <div className="flex-1">
-                        <p className="text-[11px] text-red-900 font-black uppercase mb-1">물량 손실 발생 (위험)</p>
-                        <p className="text-[10px] text-red-700 leading-relaxed font-bold">
+                        <p className="text-[10px] md:text-[11px] text-red-900 font-black uppercase mb-1">물량 손실 발생 (위험)</p>
+                        <p className="text-[9px] md:text-[10px] text-red-700 leading-relaxed font-bold">
                           현재 투입 대수로는 라스트오더 시간 내에 <strong>{analysis.unmetVolume}㎥</strong>의 물량을 소화할 수 없습니다. 
                           {analysis.minRequiredTrucks === "N/A" 
                             ? (analysis.isBPBottleneck 
@@ -876,14 +873,14 @@ export default function App() {
                       </div>
                     </div>
                     {analysis.delayReport && analysis.delayReport.length > 0 && (
-                      <div className="w-full mt-2 bg-red-100/50 rounded-2xl p-4">
-                        <p className="text-[10px] font-black text-red-900 border-b border-red-200 pb-2 mb-2">예상 지연 현장 상세</p>
+                      <div className="w-full mt-2 bg-red-100/50 rounded-2xl p-3 md:p-4">
+                        <p className="text-[9px] md:text-[10px] font-black text-red-900 border-b border-red-200 pb-2 mb-2">예상 지연 현장 상세</p>
                         <div className="space-y-1.5">
                           {analysis.delayReport.map((rpt, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-[10px] bg-white/60 px-3 py-2 rounded-xl">
-                              <span className="font-bold text-red-900 truncate w-[45%]">{rpt.siteName}</span>
+                            <div key={idx} className="flex justify-between items-center text-[9px] md:text-[10px] bg-white/60 px-3 py-2 rounded-xl">
+                              <span className="font-bold text-red-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
                               <span className="text-red-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                              <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[9px]">최대 {rpt.maxDelay}분 지연</span>
+                              <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[8px] md:text-[9px]">최대 {rpt.maxDelay}분 지연</span>
                             </div>
                           ))}
                         </div>
@@ -891,35 +888,35 @@ export default function App() {
                     )}
                   </div>
                 ) : analysis.totalActualTrucks >= analysis.idealPeakTrucks ? (
-                  <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-3xl flex items-start gap-4 border-l-4 border-l-indigo-500">
-                    <div className="bg-indigo-500 p-3 rounded-2xl shrink-0"><CheckCircle2 className="text-white" size={22} /></div>
+                  <div className="p-4 md:p-5 bg-indigo-50 border border-indigo-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-3 md:gap-4 border-l-4 border-l-indigo-500">
+                    <div className="bg-indigo-500 p-2.5 md:p-3 rounded-2xl shrink-0"><CheckCircle2 className="text-white" size={20} /></div>
                     <div className="flex-1">
-                      <p className="text-[11px] text-indigo-900 font-black uppercase mb-1">전 현장 대응 가능</p>
-                      <p className="text-[10px] text-indigo-700 leading-relaxed font-bold">
+                      <p className="text-[10px] md:text-[11px] text-indigo-900 font-black uppercase mb-1">전 현장 대응 가능</p>
+                      <p className="text-[9px] md:text-[10px] text-indigo-700 leading-relaxed font-bold">
                         모든 현장의 요구 물량과 간격을 100% 충족하며 지연 없이 출하가 가능합니다.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-5 bg-orange-50 border border-orange-100 rounded-3xl flex items-start gap-4 border-l-4 border-l-orange-500 flex-col">
-                    <div className="flex gap-4 w-full items-start">
-                      <div className="bg-orange-500 p-3 rounded-2xl shrink-0"><TrendingUp className="text-white" size={22} /></div>
+                  <div className="p-4 md:p-5 bg-orange-50 border border-orange-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-3 md:gap-4 border-l-4 border-l-orange-500 flex-col">
+                    <div className="flex gap-3 md:gap-4 w-full items-start">
+                      <div className="bg-orange-500 p-2.5 md:p-3 rounded-2xl shrink-0"><TrendingUp className="text-white" size={20} /></div>
                       <div className="flex-1">
-                        <p className="text-[11px] text-orange-900 font-black uppercase mb-1">일부 지연 발생</p>
-                        <p className="text-[10px] text-orange-700 leading-relaxed font-bold">
+                        <p className="text-[10px] md:text-[11px] text-orange-900 font-black uppercase mb-1">일부 지연 발생</p>
+                        <p className="text-[9px] md:text-[10px] text-orange-700 leading-relaxed font-bold">
                           물량은 100% 소화하지만 피크타임(오전)에 현장 배차 간격이 늘어집니다. 운송 효율은 양호하나, 현장의 타설 끊김 클레임에 대비해야 합니다.
                         </p>
                       </div>
                     </div>
                     {analysis.delayReport && analysis.delayReport.length > 0 && (
-                      <div className="w-full mt-2 bg-orange-100/50 rounded-2xl p-4">
-                        <p className="text-[10px] font-black text-orange-900 border-b border-orange-200 pb-2 mb-2">예상 지연 현장 상세</p>
+                      <div className="w-full mt-2 bg-orange-100/50 rounded-2xl p-3 md:p-4">
+                        <p className="text-[9px] md:text-[10px] font-black text-orange-900 border-b border-orange-200 pb-2 mb-2">예상 지연 현장 상세</p>
                         <div className="space-y-1.5">
                           {analysis.delayReport.map((rpt, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-[10px] bg-white/60 px-3 py-2 rounded-xl">
-                              <span className="font-bold text-orange-900 truncate w-[45%]">{rpt.siteName}</span>
+                            <div key={idx} className="flex justify-between items-center text-[9px] md:text-[10px] bg-white/60 px-3 py-2 rounded-xl">
+                              <span className="font-bold text-orange-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
                               <span className="text-orange-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                              <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[9px]">최대 {rpt.maxDelay}분 지연</span>
+                              <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[8px] md:text-[9px]">최대 {rpt.maxDelay}분 지연</span>
                             </div>
                           ))}
                         </div>
@@ -930,11 +927,11 @@ export default function App() {
 
                 {/* 2. 용차 효율 경고 */}
                 {(factoryConfig.plannedExtTrucks > 0 && Number(analysis.avgTripsExt) <= Number(analysis.avgTripsOwn) * 0.7) && (
-                  <div className="p-5 bg-slate-900 border border-slate-800 rounded-3xl flex items-start gap-4">
-                    <div className="bg-slate-700 p-3 rounded-2xl shrink-0"><Info className="text-white" size={22} /></div>
+                  <div className="p-4 md:p-5 bg-slate-900 border border-slate-800 rounded-[1.5rem] md:rounded-3xl flex items-start gap-3 md:gap-4">
+                    <div className="bg-slate-700 p-2.5 md:p-3 rounded-2xl shrink-0"><Info className="text-white" size={20} /></div>
                     <div className="flex-1">
-                      <p className="text-[11px] text-slate-300 font-black uppercase mb-1">용차 운용 효율 저하</p>
-                      <p className="text-[10px] text-slate-400 leading-relaxed font-bold">
+                      <p className="text-[10px] md:text-[11px] text-slate-300 font-black uppercase mb-1">용차 운용 효율 저하</p>
+                      <p className="text-[9px] md:text-[10px] text-slate-400 leading-relaxed font-bold">
                         용차의 평균 회전수({analysis.avgTripsExt}회)가 자차({analysis.avgTripsOwn}회) 대비 70% 이하로 매우 낮습니다. 불필요하게 많은 용차가 투입되었거나 특정 시간에만 몰려있습니다.
                       </p>
                     </div>
@@ -949,27 +946,27 @@ export default function App() {
 
       {/* Dynamic Modal Popups */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-8" onClick={() => setActiveModal(null)}>
-          <div className="bg-slate-50 w-full max-w-5xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 md:p-8" onClick={() => setActiveModal(null)}>
+          <div className="bg-slate-50 w-full max-w-5xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             {/* Modal Header */}
-            <div className="bg-indigo-950 px-8 py-5 flex justify-between items-center shrink-0">
-              <h2 className="text-white font-black flex items-center gap-2 tracking-tight text-lg">
-                <LayoutTemplate className="text-indigo-400" size={20} />
+            <div className="bg-indigo-950 px-6 md:px-8 py-4 md:py-5 flex justify-between items-center shrink-0">
+              <h2 className="text-white font-black flex items-center gap-2 tracking-tight text-base md:text-lg">
+                <LayoutTemplate className="text-indigo-400" size={18} />
                 {activeModal === 'supply' && '시간대별 차량 수급 흐름'}
                 {activeModal === 'sensitivity' && '차량 증감에 따른 출하량 시뮬레이터'}
                 {activeModal === 'hourlyTable' && '시간대별 출하표 비교'}
               </h2>
               <button onClick={() => setActiveModal(null)} className="text-indigo-400 hover:text-white transition-colors bg-indigo-900 p-2 rounded-full">
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             
             {/* Modal Body */}
-            <div className="p-8 overflow-y-auto max-h-[80vh] custom-scrollbar">
+            <div className="p-4 md:p-8 overflow-y-auto max-h-[80vh] custom-scrollbar">
               
               {/* MODAL 1: 수급 흐름 차트 */}
               {activeModal === 'supply' && (
-                <section className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
+                <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
                   <div className="flex items-center justify-between mb-10">
                     <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                       <Clock size={18} className="text-indigo-600" /> 전체 시간대 차량 흐름 모니터링
@@ -1039,7 +1036,7 @@ export default function App() {
 
               {/* MODAL 2: 차량 증감 시뮬레이션 */}
               {activeModal === 'sensitivity' && (
-                <section className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
+                <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
                   <div className="flex items-center justify-between mb-10">
                     <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                       <TrendingUp size={18} className="text-indigo-600" /> 차량 증감(±10대)에 따른 출하량 변화
@@ -1121,21 +1118,21 @@ export default function App() {
 
               {/* MODAL 3: 시간대별 출하표 */}
               {activeModal === 'hourlyTable' && (
-                <section className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
-                  <div className="flex items-center justify-between mb-8">
+                <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                       <TableIcon size={18} className="text-indigo-600" /> 시간대별 최적 vs 현재 출하량 비교표
                     </h3>
-                    <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 flex gap-4 text-[11px] font-black">
+                    <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 flex gap-4 text-[11px] font-black w-fit">
                       <div className="text-slate-500">예정량 <span className="text-slate-800">{analysis.totalPlannedVolume}㎥</span></div>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
-                    <table className="w-full text-center border-collapse whitespace-nowrap">
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm custom-scrollbar">
+                    <table className="w-full text-center border-collapse whitespace-nowrap min-w-[800px]">
                       <thead>
                         <tr className="bg-indigo-950 border-b border-indigo-900">
-                          <th className="p-4 text-[12px] font-black text-indigo-200 w-32 border-r border-indigo-900/50">구분 (단위: ㎥)</th>
+                          <th className="p-4 text-[12px] font-black text-indigo-200 w-32 border-r border-indigo-900/50 sticky left-0 bg-indigo-950 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">구분 (단위: ㎥)</th>
                           {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                             <th key={d.hour} className="p-4 text-[12px] font-black text-white">{d.label}</th>
                           ))}
@@ -1145,7 +1142,7 @@ export default function App() {
                       <tbody>
                         {/* 최적 배차 */}
                         <tr className="border-b border-slate-100 bg-white hover:bg-slate-50 transition-colors">
-                          <td className="p-4 text-[11px] font-black text-slate-500 bg-slate-50/50 border-r border-slate-100">최적 배차시<br/><span className="text-[9px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? analysis.idealPeakTrucks : 'B/P최대'}대)</span></td>
+                          <td className="p-4 text-[11px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[9px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? analysis.idealPeakTrucks : 'B/P최대'}대)</span></td>
                           {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                             <td key={d.hour} className="p-4 text-[13px] font-bold text-slate-700">{d.optimal || '-'}</td>
                           ))}
@@ -1153,7 +1150,7 @@ export default function App() {
                         </tr>
                         {/* 현재 배차 */}
                         <tr className="border-b border-slate-200 bg-indigo-50/30 hover:bg-indigo-50 transition-colors">
-                          <td className="p-4 text-[11px] font-black text-indigo-700 bg-indigo-50/50 border-r border-indigo-100/50">현재 배차시<br/><span className="text-[9px] text-indigo-400 font-normal">({analysis.totalActualTrucks}대)</span></td>
+                          <td className="p-4 text-[11px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[9px] text-indigo-400 font-normal">({analysis.totalActualTrucks}대)</span></td>
                           {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                             <td key={d.hour} className="p-4 text-[13px] font-black text-indigo-900">{d.current || '-'}</td>
                           ))}
@@ -1161,7 +1158,7 @@ export default function App() {
                         </tr>
                         {/* GAP */}
                         <tr className="bg-slate-100/80">
-                          <td className="p-4 text-[11px] font-black text-slate-600 border-r border-slate-200">GAP<br/><span className="text-[9px] text-slate-400 font-normal">(현재 - 최적)</span></td>
+                          <td className="p-4 text-[11px] font-black text-slate-600 border-r border-slate-200 bg-slate-100/90 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">GAP<br/><span className="text-[9px] text-slate-400 font-normal">(현재 - 최적)</span></td>
                           {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                             <td key={d.hour} className={`p-4 text-[13px] font-black ${d.gap > 0 ? 'text-emerald-600' : d.gap < 0 ? 'text-red-500' : 'text-slate-400'}`}>
                               {d.gap > 0 ? `+${d.gap}` : (d.gap === 0 ? '-' : d.gap)}
@@ -1194,16 +1191,24 @@ export default function App() {
         </div>
       )}
 
+      {/* Share Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 z-[100] animate-in slide-in-from-bottom-5">
+          <CheckCircle2 size={16} className="text-emerald-400" />
+          <span className="text-xs md:text-sm font-bold tracking-tight">{toastMsg}</span>
+        </div>
+      )}
+
       <style>{`
         @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
         * { font-family: 'Pretendard', 'Inter', sans-serif !important; }
         
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; background-clip: content-box; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         input[type="time"] { position: relative; -webkit-appearance: none; appearance: none; display: flex; align-items: center; justify-content: center; }
         input[type="time"]::-webkit-calendar-picker-indicator { background: transparent; bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
