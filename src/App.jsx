@@ -28,7 +28,10 @@ try {
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// --- Preset Data ---
+// ==========================================
+// 🏢 [여기에 공장 리스트를 추가하세요!] 🏢
+// ==========================================
+// 양식: "공장이름": { bps: [{ id:1, capacity: 캐파 }, ...], ownTrucks: 보유자차, internalLoss: 공장로스, endTime: "라스트오더" }
 const FACTORY_PRESETS = {
   "기본 (미설정)": {
     bps: [{ id: 1, capacity: 210 }],
@@ -43,17 +46,152 @@ const FACTORY_PRESETS = {
     endTime: "17:00"
   },
   "강서공장": {
-    bps: [{ id: 1, capacity: 300 }, { id: 2, capacity: 300 }],
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
     ownTrucks: 70,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "인천공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
+    ownTrucks: 55,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "서인천공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 55,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "송도공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
+    ownTrucks: 72,
+    internalLoss: 5,
+    endTime: "18:00"
+  },
+  "서서울공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }, { id: 3, capacity: 210 }, { id: 4, capacity: 210 }],
+    ownTrucks: 150,
     internalLoss: 5,
     endTime: "17:00"
   },
   "동서울공장": {
     bps: [{ id: 1, capacity: 360 }, { id: 2, capacity: 360 }],
-    ownTrucks: 80,
+    ownTrucks: 84,
     internalLoss: 5,
     endTime: "17:00"
-  }
+  },
+  "남양주공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 24,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "동두천공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 24,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "춘천공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 12,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "수지공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 52,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "광주공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 40,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "안산공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 60,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "수원공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 49,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "지구공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 16,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "평택공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 210 }],
+    ownTrucks: 50,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "안성공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 32,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "천안공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
+    ownTrucks: 40,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "세종공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 32,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "당진공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 13,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "K광주공장": {
+    bps: [{ id: 1, capacity: 240 }],
+    ownTrucks: 28,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "나주공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 23,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "군산공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 12,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "김해공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 22,
+    internalLoss: 5,
+    endTime: "16:00"
+  },
+  // 🔽 아래에 필요한 공장들을 똑같은 양식으로 쭉 추가하시면 됩니다!
+  /*
+  "인천공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 50,
+    internalLoss: 5,
+    endTime: "17:30"
+  },
+  */
 };
 
 export default function App() {
@@ -62,9 +200,10 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState('');
   const [user, setUser] = useState(null);
   
-  const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
   const [activeModal, setActiveModal] = useState(null); 
   const fileInputRef = useRef(null);
+  
+  const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
 
   const [factoryConfig, setFactoryConfig] = useState({
     bps: [{ id: 1, capacity: 210 }],
@@ -159,8 +298,8 @@ export default function App() {
             if (data.sites) setSites(data.sites);
             if (data.selectedPreset) setSelectedPreset(data.selectedPreset);
             
-            setToastMsg('☁️ 클라우드에서 배차 데이터를 불러왔습니다!');
-            setTimeout(() => setToastMsg(''), 3000);
+            setToastMsg('☁️ 공유된 설정 데이터를 모두 불러왔습니다!');
+            setTimeout(() => setToastMsg(''), 3500);
           }
         } catch (e) {
           console.error("클라우드 데이터 로딩 실패", e);
@@ -194,7 +333,7 @@ export default function App() {
   // --- 5. Share Handlers ---
   const handleLegacyShare = () => {
     try {
-      const stateToShare = { factoryConfig, sites, selectedPreset };
+      const stateToShare = { factoryConfig, sites, selectedPreset }; 
       const encodedState = btoa(encodeURIComponent(JSON.stringify(stateToShare)));
       
       const url = new URL(window.location.href);
@@ -208,7 +347,7 @@ export default function App() {
       document.execCommand('copy');
       document.body.removeChild(tempInput);
       
-      setToastMsg('긴 URL 링크가 복사되었습니다! (임시 공유용) 🔗');
+      setToastMsg('링크가 복사되었습니다! 🔗');
       setTimeout(() => setToastMsg(''), 3500);
     } catch (err) {
       setToastMsg('링크 생성에 실패했습니다. (데이터가 너무 많을 수 있습니다)');
@@ -252,7 +391,7 @@ export default function App() {
       document.execCommand('copy');
       document.body.removeChild(tempInput);
       
-      setToastMsg('클라우드에 안전하게 저장하고 공유 링크를 복사했어요! ☁️🔗');
+      setToastMsg('클라우드에 저장하고 공유 링크를 복사했어요! ☁️🔗');
       setTimeout(() => setToastMsg(''), 3500);
     } catch (err) {
       setToastMsg('링크 생성에 실패했습니다. 다시 시도해주세요.');
@@ -314,7 +453,6 @@ export default function App() {
     };
     reader.readAsText(file);
   };
-
 
   // --- 6. Core Simulation Logic ---
   const analysis = useMemo(() => {
@@ -625,7 +763,12 @@ export default function App() {
     const presetName = e.target.value;
     setSelectedPreset(presetName);
     if (FACTORY_PRESETS[presetName]) {
-      setFactoryConfig({ ...factoryConfig, ...FACTORY_PRESETS[presetName], bps: JSON.parse(JSON.stringify(FACTORY_PRESETS[presetName].bps)) });
+      // 선택한 하드코딩된 프리셋으로 팩토리 설정 덮어쓰기
+      setFactoryConfig({ 
+        ...factoryConfig, 
+        ...FACTORY_PRESETS[presetName], 
+        bps: JSON.parse(JSON.stringify(FACTORY_PRESETS[presetName].bps)) 
+      });
     }
   };
 
@@ -648,7 +791,7 @@ export default function App() {
           <div className="min-w-0 flex-1">
             <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
               <span className="truncate">Eugene MT Flow Optimizer</span>
-              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.46</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.49</span>
             </h1>
             <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
@@ -677,12 +820,20 @@ export default function App() {
         {/* Left Panel (Inputs) */}
         {!isMobile && (
           <div className="w-[52%] overflow-y-auto p-6 space-y-6 border-r border-slate-200 custom-scrollbar bg-slate-50/50">
-            <section className="bg-white p-6 rounded-[1.8rem] shadow-sm border border-slate-200">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-sm font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Settings2 size={18} /> 공장 자원 및 운용 정책</h2>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-tight">공장 선택</span>
-                  <select className="bg-indigo-50 text-indigo-700 text-xs font-black py-2 px-4 rounded-lg border border-indigo-100 outline-none cursor-pointer" value={selectedPreset} onChange={handlePresetChange}>
+            <section className="bg-white p-5 md:p-6 rounded-[1.8rem] shadow-sm border border-slate-200">
+              <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                <h2 className="text-sm font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+                  <Settings2 size={18} /> 공장 자원 및 운용 정책
+                </h2>
+                
+                {/* 간소화된 공장 선택 드롭다운 (하드코딩 연동) */}
+                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-tight pl-2 hidden 2xl:inline">공장 선택</span>
+                  <select 
+                    className="bg-indigo-50 text-indigo-700 text-xs font-black py-2 px-3 rounded-lg border border-indigo-100 outline-none cursor-pointer max-w-[150px] lg:max-w-[180px] truncate" 
+                    value={selectedPreset} 
+                    onChange={handlePresetChange}
+                  >
                     {Object.keys(FACTORY_PRESETS).map(preset => <option key={preset} value={preset}>{preset}</option>)}
                   </select>
                 </div>
@@ -1059,242 +1210,283 @@ export default function App() {
 
       {/* Dynamic Modal Popups */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 md:p-8" onClick={() => setActiveModal(null)}>
-          <div className="bg-slate-50 w-full max-w-5xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="bg-indigo-950 px-6 md:px-8 py-5 flex justify-between items-center shrink-0">
-              <h2 className="text-white font-black flex items-center gap-2.5 tracking-tight text-lg md:text-xl">
-                <LayoutTemplate className="text-indigo-400" size={20} />
-                {activeModal === 'supply' && '시간대별 차량 수급 흐름'}
-                {activeModal === 'sensitivity' && '차량 증감에 따른 출하량 시뮬레이터'}
-                {activeModal === 'hourlyTable' && '시간대별 출하표 비교'}
-              </h2>
-              <button onClick={() => setActiveModal(null)} className="text-indigo-400 hover:text-white transition-colors bg-indigo-900 p-2.5 rounded-full">
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-5 md:p-8 overflow-y-auto max-h-[80vh] custom-scrollbar">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 md:p-8" onClick={() => setActiveModal(null)}>
+
+          {['supply', 'sensitivity', 'hourlyTable'].includes(activeModal) && (
+            <div className="bg-slate-50 w-full max-w-5xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="bg-indigo-950 px-6 md:px-8 py-5 flex justify-between items-center shrink-0">
+                <h2 className="text-white font-black flex items-center gap-2.5 tracking-tight text-lg md:text-xl">
+                  <LayoutTemplate className="text-indigo-400" size={20} />
+                  {activeModal === 'supply' && '시간대별 차량 수급 흐름'}
+                  {activeModal === 'sensitivity' && '차량 증감에 따른 출하량 시뮬레이터'}
+                  {activeModal === 'hourlyTable' && '시간대별 출하표 비교'}
+                </h2>
+                <button onClick={() => setActiveModal(null)} className="text-indigo-400 hover:text-white transition-colors bg-indigo-900 p-2.5 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
               
-              {activeModal === 'supply' && (
-                <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
-                  <div className="flex items-center justify-between mb-10">
-                    <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                      <Clock size={20} className="text-indigo-600" /> 전체 시간대 차량 흐름 모니터링
-                    </h3>
-                    <div className="flex gap-6">
-                      <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
-                        <div className="w-4 h-4 bg-indigo-500 rounded-sm shadow-sm" /> 대기 자차
-                      </div>
-                      <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
-                        <div className="w-4 h-4 bg-sky-400 rounded-sm shadow-sm" /> 대기 용차
-                      </div>
-                      <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
-                        <div className="w-4 h-4 bg-red-500 rounded-sm shadow-sm" /> 부족 대수
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="pb-12">
-                    <div className="relative h-80 flex items-end gap-[3px] px-2 border-b-2 border-slate-200 mt-4">
-                      {analysis.timeSlots.map((slot, i) => {
-                        const isShortage = slot.shortage > 0;
-                        const displayValue = isShortage ? slot.shortage : slot.available;
-                        const maxScale = Math.max(analysis.totalActualTrucks, analysis.absoluteMaxShortage, 10);
-                        const heightPercentage = Math.min(100, (displayValue / maxScale) * 100);
-                        
-                        return (
-                          <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                            <div className="absolute bottom-full mb-3 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom transition-all">
-                              <p className="text-sm font-black text-indigo-400 mb-1.5">{slot.time}</p>
-                              <p className="text-base font-bold">
-                                {isShortage ? `부족대수: ${slot.shortage}대` : `대기: 자차 ${slot.availableOwn}대 + 용차 ${slot.availableExt}대`}
-                              </p>
-                            </div>
-                            
-                            {isShortage ? (
-                              <div 
-                                style={{ height: `${Math.max(2, heightPercentage)}%` }} 
-                                className="w-full rounded-t-sm transition-all bg-red-500 hover:bg-red-400" 
-                              />
-                            ) : (
-                              <div 
-                                style={{ height: `${Math.max(2, heightPercentage)}%` }} 
-                                className="w-full flex flex-col-reverse justify-start transition-all rounded-t-sm overflow-hidden"
-                              >
-                                 <div style={{ height: `${(slot.availableOwn / (slot.availableOwn + slot.availableExt || 1)) * 100}%` }} className="w-full bg-indigo-500 hover:bg-indigo-400 transition-colors" />
-                                 {slot.availableExt > 0 && (
-                                   <div style={{ height: `${(slot.availableExt / (slot.availableOwn + slot.availableExt)) * 100}%` }} className="w-full bg-sky-400 hover:bg-sky-300 transition-colors border-b border-indigo-900/10" />
-                                 )}
-                              </div>
-                            )}
-                            
-                            {slot.time.endsWith(':00') && (
-                              <div className="absolute top-full mt-2.5 flex flex-col items-center">
-                                <div className="w-[1px] h-3 bg-slate-300 mb-1" /><span className="text-[11px] font-black text-slate-500 tracking-tighter">{slot.time.split(':')[0]}시</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 font-bold text-center bg-slate-50 py-4 rounded-xl border border-slate-100 mt-4">
-                    현재 입력된 총 <strong className="text-indigo-600">{analysis.totalActualTrucks}대</strong> 기준 흐름입니다.
-                  </p>
-                </section>
-              )}
-
-              {activeModal === 'sensitivity' && (
-                <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
-                  <div className="flex items-center justify-between mb-10">
-                    <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                      <TrendingUp size={20} className="text-indigo-600" /> 차량 증감(±10대)에 따른 출하량 변화
-                    </h3>
-                    <div className="flex items-center gap-3 text-xs font-black text-slate-500 uppercase">
-                      <div className="w-8 border-t-2 border-dashed border-emerald-500" /> 예정량 ({analysis.totalPlannedVolume}㎥)
-                    </div>
-                  </div>
-                  
-                  <div className="pb-12">
-                    <div className="relative h-80 flex items-end gap-2 px-6 border-b-2 border-slate-200 mt-4">
-                      {analysis.totalPlannedVolume > 0 && (
-                        <div 
-                          className="absolute left-0 right-0 border-b-2 border-dashed border-emerald-500 z-10 pointer-events-none"
-                          style={{ bottom: `${(analysis.totalPlannedVolume / Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1)) * 100}%` }}
-                        >
-                          <span className="absolute bottom-full left-4 mb-2 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded shadow-sm whitespace-nowrap">
-                            예정량: {analysis.totalPlannedVolume}㎥
-                          </span>
+              <div className="p-5 md:p-8 overflow-y-auto max-h-[80vh] custom-scrollbar">
+                
+                {activeModal === 'supply' && (
+                  <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
+                    <div className="flex items-center justify-between mb-10">
+                      <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                        <Clock size={20} className="text-indigo-600" /> 전체 시간대 차량 흐름 모니터링
+                      </h3>
+                      <div className="flex gap-6">
+                        <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
+                          <div className="w-4 h-4 bg-indigo-500 rounded-sm shadow-sm" /> 대기 자차
                         </div>
-                      )}
+                        <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
+                          <div className="w-4 h-4 bg-sky-400 rounded-sm shadow-sm" /> 대기 용차
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
+                          <div className="w-4 h-4 bg-red-500 rounded-sm shadow-sm" /> 부족 대수
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="pb-12">
+                      <div className="relative h-80 flex items-end gap-[3px] px-2 border-b-2 border-slate-200 mt-4">
+                        {analysis.timeSlots.map((slot, i) => {
+                          const isShortage = slot.shortage > 0;
+                          const displayValue = isShortage ? slot.shortage : slot.available;
+                          const maxScale = Math.max(analysis.totalActualTrucks, analysis.absoluteMaxShortage, 10);
+                          const heightPercentage = Math.min(100, (displayValue / maxScale) * 100);
+                          
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                              <div className="absolute bottom-full mb-3 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom transition-all">
+                                <p className="text-sm font-black text-indigo-400 mb-1.5">{slot.time}</p>
+                                <p className="text-base font-bold">
+                                  {isShortage ? `부족대수: ${slot.shortage}대` : `대기: 자차 ${slot.availableOwn}대 + 용차 ${slot.availableExt}대`}
+                                </p>
+                              </div>
+                              
+                              {isShortage ? (
+                                <div 
+                                  style={{ height: `${Math.max(2, heightPercentage)}%` }} 
+                                  className="w-full rounded-t-sm transition-all bg-red-500 hover:bg-red-400" 
+                                />
+                              ) : (
+                                <div 
+                                  style={{ height: `${Math.max(2, heightPercentage)}%` }} 
+                                  className="w-full flex flex-col-reverse justify-start transition-all rounded-t-sm overflow-hidden"
+                                >
+                                   <div style={{ height: `${(slot.availableOwn / (slot.availableOwn + slot.availableExt || 1)) * 100}%` }} className="w-full bg-indigo-500 hover:bg-indigo-400 transition-colors" />
+                                   {slot.availableExt > 0 && (
+                                     <div style={{ height: `${(slot.availableExt / (slot.availableOwn + slot.availableExt)) * 100}%` }} className="w-full bg-sky-400 hover:bg-sky-300 transition-colors border-b border-indigo-900/10" />
+                                   )}
+                                </div>
+                              )}
+                              
+                              {slot.time.endsWith(':00') && (
+                                <div className="absolute top-full mt-2.5 flex flex-col items-center">
+                                  <div className="w-[1px] h-3 bg-slate-300 mb-1" /><span className="text-[11px] font-black text-slate-500 tracking-tighter">{slot.time.split(':')[0]}시</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-500 font-bold text-center bg-slate-50 py-4 rounded-xl border border-slate-100 mt-4">
+                      현재 입력된 총 <strong className="text-indigo-600">{analysis.totalActualTrucks}대</strong> 기준 흐름입니다.
+                    </p>
+                  </section>
+                )}
 
-                      {analysis.sensitivityData.map(d => {
-                        const chartMaxVol = Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1);
-                        const heightPct = (d.expectedOutput / chartMaxVol) * 100;
-                        const isCurrent = d.trucks === analysis.totalActualTrucks;
-                        const isMeetingTarget = d.expectedOutput >= analysis.totalPlannedVolume;
-                        const isBPMax = d.expectedOutput === analysis.maxPossibleVol && analysis.maxPossibleVol < analysis.totalPlannedVolume;
+                {activeModal === 'sensitivity' && (
+                  <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
+                    <div className="flex items-center justify-between mb-10">
+                      <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                        <TrendingUp size={20} className="text-indigo-600" /> 차량 증감(±10대)에 따른 출하량 변화
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs font-black text-slate-500 uppercase">
+                        <div className="w-8 border-t-2 border-dashed border-emerald-500" /> 예정량 ({analysis.totalPlannedVolume}㎥)
+                      </div>
+                    </div>
+                    
+                    <div className="pb-12">
+                      <div className="relative h-80 flex items-end gap-2 px-6 border-b-2 border-slate-200 mt-4">
+                        {analysis.totalPlannedVolume > 0 && (
+                          <div 
+                            className="absolute left-0 right-0 border-b-2 border-dashed border-emerald-500 z-10 pointer-events-none"
+                            style={{ bottom: `${(analysis.totalPlannedVolume / Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1)) * 100}%` }}
+                          >
+                            <span className="absolute bottom-full left-4 mb-2 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded shadow-sm whitespace-nowrap">
+                              예정량: {analysis.totalPlannedVolume}㎥
+                            </span>
+                          </div>
+                        )}
 
-                        return (
-                          <div key={d.trucks} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                            <div className="absolute bottom-full mb-4 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom">
-                              <p className="text-sm font-black text-indigo-400 mb-2 border-b border-slate-700 pb-1.5">총 {d.trucks}대 투입 시</p>
-                              <div className="space-y-1.5">
-                                <p className="text-sm font-bold">출하 가능: <strong className={isMeetingTarget ? "text-emerald-400 text-lg" : "text-orange-400 text-lg"}>{d.expectedOutput} ㎥</strong></p>
-                                {d.expectedOutput < analysis.totalPlannedVolume && (
-                                  <p className="text-xs text-red-400 bg-red-950/50 px-2 py-1 rounded-lg">{-1 * (analysis.totalPlannedVolume - d.expectedOutput)} ㎥ 손실</p>
-                                )}
+                        {analysis.sensitivityData.map(d => {
+                          const chartMaxVol = Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1);
+                          const heightPct = (d.expectedOutput / chartMaxVol) * 100;
+                          const isCurrent = d.trucks === analysis.totalActualTrucks;
+                          const isMeetingTarget = d.expectedOutput >= analysis.totalPlannedVolume;
+                          const isBPMax = d.expectedOutput === analysis.maxPossibleVol && analysis.maxPossibleVol < analysis.totalPlannedVolume;
+
+                          return (
+                            <div key={d.trucks} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                              <div className="absolute bottom-full mb-4 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom">
+                                <p className="text-sm font-black text-indigo-400 mb-2 border-b border-slate-700 pb-1.5">총 {d.trucks}대 투입 시</p>
+                                <div className="space-y-1.5">
+                                  <p className="text-sm font-bold">출하 가능: <strong className={isMeetingTarget ? "text-emerald-400 text-lg" : "text-orange-400 text-lg"}>{d.expectedOutput} ㎥</strong></p>
+                                  {d.expectedOutput < analysis.totalPlannedVolume && (
+                                    <p className="text-xs text-red-400 bg-red-950/50 px-2 py-1 rounded-lg">{-1 * (analysis.totalPlannedVolume - d.expectedOutput)} ㎥ 손실</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div 
+                                style={{ height: `${Math.max(2, heightPct)}%` }} 
+                                className={`w-full max-w-[40px] rounded-t-lg transition-all duration-300 relative ${
+                                  isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 opacity-100 z-20' : 'opacity-60 hover:opacity-100 z-0'
+                                } ${isMeetingTarget ? 'bg-emerald-500' : isBPMax ? 'bg-slate-400' : 'bg-orange-400'}`}
+                              >
+                                {isCurrent && <div className="absolute -top-9 left-1/2 -translate-x-1/2 text-[11px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 shadow-sm">현재</div>}
+                              </div>
+
+                              <div className="absolute top-full mt-3 text-center w-full flex flex-col items-center">
+                                <p className={`text-sm font-black leading-tight ${isCurrent ? 'text-indigo-600' : 'text-slate-600'}`}>{d.trucks}</p>
+                                <p className={`text-[11px] font-black tracking-tighter mt-0.5 ${isCurrent ? 'text-orange-600' : 'text-slate-400'}`}>
+                                  {d.ext > 0 ? `+${d.ext}` : '-'}
+                                </p>
                               </div>
                             </div>
-
-                            <div 
-                              style={{ height: `${Math.max(2, heightPct)}%` }} 
-                              className={`w-full max-w-[40px] rounded-t-lg transition-all duration-300 relative ${
-                                isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 opacity-100 z-20' : 'opacity-60 hover:opacity-100 z-0'
-                              } ${isMeetingTarget ? 'bg-emerald-500' : isBPMax ? 'bg-slate-400' : 'bg-orange-400'}`}
-                            >
-                              {isCurrent && <div className="absolute -top-9 left-1/2 -translate-x-1/2 text-[11px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 shadow-sm">현재</div>}
-                            </div>
-
-                            <div className="absolute top-full mt-3 text-center w-full flex flex-col items-center">
-                              <p className={`text-sm font-black leading-tight ${isCurrent ? 'text-indigo-600' : 'text-slate-600'}`}>{d.trucks}</p>
-                              <p className={`text-[11px] font-black tracking-tighter mt-0.5 ${isCurrent ? 'text-orange-600' : 'text-slate-400'}`}>
-                                {d.ext > 0 ? `+${d.ext}` : '-'}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-5">
-                    <p className="text-sm text-slate-500 font-bold bg-slate-50 py-3 px-6 rounded-xl border border-slate-100 flex items-center gap-6">
-                      <span><span className="text-orange-500 font-black">■</span> 물량 손실</span>
-                      <span><span className="text-emerald-500 font-black">■</span> 목표 달성</span>
-                      <span><span className="text-slate-400 font-black">■</span> 공장(B/P) 한계</span>
-                    </p>
-                    <p className="text-xs text-slate-400 font-bold pr-2 tracking-tight">
-                      ※ X축 표기: 총 투입 대수 / (+추가 용차 대수)
-                    </p>
-                  </div>
-                </section>
-              )}
-
-              {activeModal === 'hourlyTable' && (
-                <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                      <TableIcon size={20} className="text-indigo-600" /> 시간대별 최적 vs 현재 출하량 비교표
-                    </h3>
-                    <div className="bg-slate-50 px-5 py-3 rounded-xl border border-slate-200 flex gap-4 text-sm font-black w-fit">
-                      <div className="text-slate-500">예정량 <span className="text-slate-800">{analysis.totalPlannedVolume}㎥</span></div>
+                    
+                    <div className="flex justify-between items-center mt-5">
+                      <p className="text-sm text-slate-500 font-bold bg-slate-50 py-3 px-6 rounded-xl border border-slate-100 flex items-center gap-6">
+                        <span><span className="text-orange-500 font-black">■</span> 물량 손실</span>
+                        <span><span className="text-emerald-500 font-black">■</span> 목표 달성</span>
+                        <span><span className="text-slate-400 font-black">■</span> 공장(B/P) 한계</span>
+                      </p>
+                      <p className="text-xs text-slate-400 font-bold pr-2 tracking-tight">
+                        ※ X축 표기: 총 투입 대수 / (+추가 용차 대수)
+                      </p>
                     </div>
-                  </div>
+                  </section>
+                )}
 
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm custom-scrollbar">
-                    <table className="w-full text-center border-collapse whitespace-nowrap min-w-[800px]">
-                      <thead>
-                        <tr className="bg-indigo-950 border-b border-indigo-900">
-                          <th className="p-4 text-[13px] font-black text-indigo-200 w-36 border-r border-indigo-900/50 sticky left-0 bg-indigo-950 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">구분 (단위: ㎥)</th>
-                          {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                            <th key={d.hour} className="p-4 text-[13px] font-black text-white">{d.label}</th>
-                          ))}
-                          <th className="p-4 text-[13px] font-black text-emerald-300 border-l border-indigo-900/50">합계 (Total)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-slate-100 bg-white hover:bg-slate-50 transition-colors">
-                          <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[11px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? analysis.idealPeakTrucks : 'B/P최대'}대)</span></td>
-                          {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                            <td key={d.hour} className="p-4 text-[15px] font-bold text-slate-700">{d.optimal || '-'}</td>
-                          ))}
-                          <td className="p-4 text-[16px] font-black text-slate-800 border-l border-slate-100 bg-slate-50/50">{analysis.sumOpt}</td>
-                        </tr>
-                        <tr className="border-b border-slate-200 bg-indigo-50/30 hover:bg-indigo-50 transition-colors">
-                          <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[11px] text-indigo-400 font-normal">({analysis.totalActualTrucks}대)</span></td>
-                          {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                            <td key={d.hour} className="p-4 text-[15px] font-black text-indigo-900">{d.current || '-'}</td>
-                          ))}
-                          <td className="p-4 text-[16px] font-black text-indigo-700 border-l border-indigo-100/50 bg-indigo-50/50">{analysis.sumCur}</td>
-                        </tr>
-                        <tr className="bg-slate-100/80">
-                          <td className="p-4 text-[13px] font-black text-slate-600 border-r border-slate-200 bg-slate-100/90 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">GAP<br/><span className="text-[11px] text-slate-400 font-normal">(현재 - 최적)</span></td>
-                          {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                            <td key={d.hour} className={`p-4 text-[15px] font-black ${d.gap > 0 ? 'text-emerald-600' : d.gap < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                              {d.gap > 0 ? `+${d.gap}` : (d.gap === 0 ? '-' : d.gap)}
+                {activeModal === 'hourlyTable' && (
+                  <section className="bg-white p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
+                      <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                        <TableIcon size={20} className="text-indigo-600" /> 시간대별 최적 vs 현재 출하량 비교
+                      </h3>
+                      <div className="bg-slate-50 px-4 md:px-5 py-3 rounded-xl border border-slate-200 flex gap-4 text-sm font-black w-fit">
+                        <div className="text-slate-500">예정량 <span className="text-slate-800">{analysis.totalPlannedVolume}㎥</span></div>
+                      </div>
+                    </div>
+
+                    {/* PC View: Table Layout */}
+                    <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 shadow-sm custom-scrollbar">
+                      <table className="w-full text-center border-collapse whitespace-nowrap min-w-[800px]">
+                        <thead>
+                          <tr className="bg-indigo-950 border-b border-indigo-900">
+                            <th className="p-4 text-[13px] font-black text-indigo-200 w-36 border-r border-indigo-900/50 sticky left-0 bg-indigo-950 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">구분 (단위: ㎥)</th>
+                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
+                              <th key={d.hour} className="p-4 text-[13px] font-black text-white">{d.label}</th>
+                            ))}
+                            <th className="p-4 text-[13px] font-black text-emerald-300 border-l border-indigo-900/50">합계 (Total)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-slate-100 bg-white hover:bg-slate-50 transition-colors">
+                            <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[11px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? analysis.idealPeakTrucks : 'B/P최대'}대)</span></td>
+                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
+                              <td key={d.hour} className="p-4 text-[15px] font-bold text-slate-700">{d.optimal || '-'}</td>
+                            ))}
+                            <td className="p-4 text-[16px] font-black text-slate-800 border-l border-slate-100 bg-slate-50/50">{analysis.sumOpt}</td>
+                          </tr>
+                          <tr className="border-b border-slate-200 bg-indigo-50/30 hover:bg-indigo-50 transition-colors">
+                            <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[11px] text-indigo-400 font-normal">({analysis.totalActualTrucks}대)</span></td>
+                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
+                              <td key={d.hour} className="p-4 text-[15px] font-black text-indigo-900">{d.current || '-'}</td>
+                            ))}
+                            <td className="p-4 text-[16px] font-black text-indigo-700 border-l border-indigo-100/50 bg-indigo-50/50">{analysis.sumCur}</td>
+                          </tr>
+                          <tr className="bg-slate-100/80">
+                            <td className="p-4 text-[13px] font-black text-slate-600 border-r border-slate-200 bg-slate-100/90 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">GAP<br/><span className="text-[11px] text-slate-400 font-normal">(현재 - 최적)</span></td>
+                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
+                              <td key={d.hour} className={`p-4 text-[15px] font-black ${d.gap > 0 ? 'text-emerald-600' : d.gap < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                                {d.gap > 0 ? `+${d.gap}` : (d.gap === 0 ? '-' : d.gap)}
+                              </td>
+                            ))}
+                            <td className={`p-4 text-[16px] font-black border-l border-slate-200 bg-slate-200/50 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                              {analysis.sumCur - analysis.sumOpt > 0 ? `+${analysis.sumCur - analysis.sumOpt}` : analysis.sumCur - analysis.sumOpt}
                             </td>
-                          ))}
-                          <td className={`p-4 text-[16px] font-black border-l border-slate-200 bg-slate-200/50 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                            {analysis.sumCur - analysis.sumOpt > 0 ? `+${analysis.sumCur - analysis.sumOpt}` : analysis.sumCur - analysis.sumOpt}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div className="flex justify-end mt-5">
-                    <p className="text-sm font-bold text-slate-500 flex items-center gap-2 bg-slate-50 px-5 py-3 rounded-xl border border-slate-100">
-                      <span className="text-slate-400">최종 예정량 차이:</span>
-                      <span className={`font-black ${analysis.sumCur - analysis.totalPlannedVolume < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                        {analysis.sumCur - analysis.totalPlannedVolume < 0 
-                          ? `${analysis.sumCur - analysis.totalPlannedVolume} ㎥ (미달)` 
-                          : '100% 소화 가능'}
-                      </span>
-                    </p>
-                  </div>
-                </section>
-              )}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
 
+                    {/* Mobile View: Vertical Card Layout */}
+                    <div className="md:hidden space-y-3">
+                      {/* Total Summary Card */}
+                      <div className="bg-slate-800 p-4 rounded-[1rem] flex justify-between items-center text-white shadow-md">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-400">Total Sum</span>
+                          <span className="text-base font-black">전체 합계 비교</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[11px] font-bold text-slate-300">최적 <strong className="text-white">{analysis.sumOpt}</strong> / 현재 <strong className="text-indigo-300">{analysis.sumCur}</strong></p>
+                          <p className={`text-lg font-black mt-0.5 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            GAP: {analysis.sumCur - analysis.sumOpt > 0 ? '+' : ''}{analysis.sumCur - analysis.sumOpt} ㎥
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Hourly Cards */}
+                      {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
+                        <div key={d.hour} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2">
+                          <div className="border-b border-slate-100 pb-2 mb-1 flex justify-between items-center">
+                            <span className="font-black text-indigo-900 text-sm">{d.label}</span>
+                            <span className={`text-[11px] font-black px-2 py-1 rounded-md ${d.gap > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : d.gap < 0 ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                              GAP: {d.gap > 0 ? `+${d.gap}` : (d.gap === 0 ? '-' : d.gap)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500 font-bold text-xs">최적 배차 기준</span>
+                            <span className="font-black text-slate-700">{d.optimal || '-'} <span className="text-[10px] font-normal text-slate-400">㎥</span></span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-indigo-500 font-bold text-xs">현재 차량 기준</span>
+                            <span className="font-black text-indigo-700">{d.current || '-'} <span className="text-[10px] font-normal text-indigo-300">㎥</span></span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="flex justify-end mt-6">
+                      <p className="text-sm font-bold text-slate-500 flex items-center gap-2 bg-slate-50 px-5 py-3 rounded-xl border border-slate-100 w-full md:w-auto justify-between md:justify-start">
+                        <span className="text-slate-400 text-xs md:text-sm">최종 예정량 차이:</span>
+                        <span className={`font-black ${analysis.sumCur - analysis.totalPlannedVolume < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                          {analysis.sumCur - analysis.totalPlannedVolume < 0 
+                            ? `${analysis.sumCur - analysis.totalPlannedVolume} ㎥ (미달)` 
+                            : '100% 소화 가능'}
+                        </span>
+                      </p>
+                    </div>
+                  </section>
+                )}
+
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {toastMsg && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 z-[100] animate-in slide-in-from-bottom-5">
-          <Cloud size={20} className="text-sky-400" />
-          <span className="text-sm md:text-base font-bold tracking-tight">{toastMsg}</span>
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 z-[100] animate-in slide-in-from-bottom-5 w-max max-w-[90vw]">
+          {toastMsg.includes('☁️') ? <Cloud size={20} className="text-sky-400 shrink-0" /> : <Info size={20} className="text-indigo-400 shrink-0" />}
+          <span className="text-sm md:text-base font-bold tracking-tight truncate">{toastMsg}</span>
         </div>
       )}
 
