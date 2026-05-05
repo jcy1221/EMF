@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Factory, Truck, Clock, AlertTriangle, CheckCircle2, 
   Settings2, Plus, Trash2, Coffee, TrendingUp, Info, Zap, 
   Calendar, BarChart3, Activity, ShieldAlert, HelpCircle, X, LayoutTemplate,
-  Table as TableIcon, Download, Upload
+  Table as TableIcon, Download, Upload, Monitor
 } from 'lucide-react';
 
 // --- Preset Data ---
@@ -35,6 +35,29 @@ const FACTORY_PRESETS = {
 };
 
 export default function App() {
+  // --- Mobile Detect ---
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResizeOrDetect = () => {
+      // 1. 실제 모바일 기기(OS)인지 User-Agent로 판별
+      const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
+      const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      
+      // 2. PC화면 분할(스플릿 스크린)을 고려하여 해상도 기준을 1024px -> 768px로 완화
+      const isExtremelyNarrow = window.innerWidth < 768;
+
+      // 실제 폰/태블릿이거나, PC 창이 극단적으로 좁은 경우에만 모바일 안내 화면 표시
+      setIsMobile(isRealMobileOS || isExtremelyNarrow);
+    };
+    
+    // 초기 로드 시 체크
+    handleResizeOrDetect();
+    
+    window.addEventListener('resize', handleResizeOrDetect);
+    return () => window.removeEventListener('resize', handleResizeOrDetect);
+  }, []);
+
   // --- 1. State Management ---
   const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
   const [activeModal, setActiveModal] = useState(null); 
@@ -91,7 +114,6 @@ export default function App() {
 
   // --- CSV Import / Export Handlers ---
   const downloadTemplate = () => {
-    // UTF-8 BOM 추가 (엑셀에서 한글 깨짐 방지)
     const bom = "\uFEFF";
     const headers = "현장명,주문량(㎥),개시시각(HH:MM),이동시간(분),타설시간(분),복귀시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(자차우선/용차우선/무관)\n";
     const sample1 = "A아파트 1공구,120,08:00,30,40,30,10,X,0,자차우선\n";
@@ -119,9 +141,7 @@ export default function App() {
       }
 
       const newSites = lines.slice(1).map((line, index) => {
-        // 콤마로 분리 (따옴표 처리는 제외한 심플 버전)
         const cols = line.split(',');
-        
         return {
           id: Date.now() + index,
           name: cols[0]?.trim() || `업로드 현장 ${index + 1}`,
@@ -137,13 +157,11 @@ export default function App() {
         };
       });
 
-      // 기존 항목 중 비어있는 초기 세팅 항목은 지우고, 새 데이터 추가
       setSites(prev => {
         const filteredPrev = prev.filter(s => s.name.trim() !== "" || s.volume > 0);
         return [...filteredPrev, ...newSites];
       });
       
-      // 파일 입력창 초기화 (동일 파일 재업로드 방지)
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
@@ -194,7 +212,6 @@ export default function App() {
           idealEvents.push({ time: returnMin, type: -1 });
         }
         
-        // 💡 핵심 로직: 처음 10대(i < 9)는 B/P 최대 속도 간격 적용, 11대째부터 유저 요구간격 적용
         if (i < 9) {
           currentReqTime += siteBpInterval; 
         } else {
@@ -214,7 +231,7 @@ export default function App() {
       if (currentActive > idealPeakTrucks) idealPeakTrucks = currentActive;
     });
 
-    // --- 시뮬레이션 헬퍼 함수 (최소 필요 대수 및 시간대별 출하량 탐색용) ---
+    // --- 시뮬레이션 헬퍼 함수 ---
     allRequests.sort((a, b) => a.reqTime - b.reqTime);
     
     const simulateDetailedVolume = (poolSize) => {
@@ -255,12 +272,29 @@ export default function App() {
     };
 
     // 🟠 물량 소화 (100% Volume) 최소 필요대수 역산 및 B/P Max 확인
+    let timeLimitOnlyVolume = 0;
+    sites.forEach(site => {
+      if (site.volume <= 0) return;
+      const totalTrips = Math.ceil(site.volume / 6);
+      let reqT = timeToMinutes(site.startTime);
+      for(let i=0; i<totalTrips; i++) {
+        if (reqT <= lastOrderMin) {
+          timeLimitOnlyVolume += 6;
+        }
+        if (i < 9) {
+          reqT += site.isSpecial ? Number(site.specialTime) : 1;
+        } else {
+          reqT += site.targetInterval > 0 ? site.targetInterval : 1;
+        }
+      }
+    });
+
     const maxPossibleSim = simulateDetailedVolume(999);
     const maxPossibleVol = maxPossibleSim.expectedVol;
-    let minRequiredTrucks = "B/P 한계";
-    let isBPBottleneck = maxPossibleVol < totalPlannedVolume;
+    let minRequiredTrucks = "N/A";
+    let isBPBottleneck = (maxPossibleVol < totalPlannedVolume) && (maxPossibleVol < timeLimitOnlyVolume);
     
-    if (!isBPBottleneck && totalPlannedVolume > 0) {
+    if (maxPossibleVol >= totalPlannedVolume && totalPlannedVolume > 0) {
       for (let k = 1; k <= idealPeakTrucks; k++) {
         if (simulateDetailedVolume(k).expectedVol >= totalPlannedVolume) {
           minRequiredTrucks = k;
@@ -323,7 +357,7 @@ export default function App() {
     const expectedOutput = Math.min(totalPlannedVolume, expectedVolume);
     const unmetVolume = Math.max(0, totalPlannedVolume - expectedOutput);
 
-    // --- CHART LOGIC (Ideal Demand vs Supply with Ext vs Own color tracking) ---
+    // --- CHART LOGIC ---
     let reqTrucksAtMin = new Array(endMin - startMin + 1).fill(0);
     allRequests.forEach(req => {
       if (req.reqTime <= lastOrderMin) {
@@ -349,7 +383,6 @@ export default function App() {
       const idx = m - startMin;
       const required = reqTrucksAtMin[idx] || 0; 
       
-      // 자차 우선 배정 가정하여 가동 대수 및 유휴(대기) 대수 산출
       const usedOwn = Math.min(required, factoryConfig.ownTrucks);
       const usedExt = Math.max(0, required - factoryConfig.ownTrucks);
       
@@ -463,6 +496,37 @@ export default function App() {
   const updateSite = (id, field, val) => setSites(sites.map(s => s.id === id ? { ...s, [field]: val } : s));
   const removeSite = (id) => setSites(sites.filter(s => s.id !== id));
 
+  // --- Mobile Fallback UI ---
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl max-w-sm w-full space-y-6 border border-slate-100 flex flex-col items-center">
+          <div className="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mb-2 shadow-inner">
+            <Monitor className="text-indigo-600" size={40} strokeWidth={1.5} />
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-indigo-950 tracking-tight">PC 환경 권장</h2>
+            <div className="w-10 h-1 bg-indigo-500 mx-auto rounded-full"></div>
+          </div>
+          
+          <p className="text-sm font-bold text-slate-500 leading-relaxed pt-2">
+            현재 뷰어 화면은 모바일에서 지원되지 않습니다.<br/>
+            시뮬레이션 환경을 넓게 보시려면<br/>
+            <span className="text-indigo-600 font-black bg-indigo-50 px-2 py-0.5 rounded-md mx-1">PC 전체 화면으로 접속</span>하여 주시기 바랍니다.
+          </p>
+          
+          <div className="pt-6 w-full">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 py-3 rounded-xl border border-slate-100">
+              Eugene MT Flow Optimizer v1.38
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Desktop Main UI ---
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden select-none">
       <header className="bg-white border-b border-slate-200 px-8 py-3 flex justify-between items-center shrink-0 z-30 shadow-sm">
@@ -470,9 +534,9 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.34</span>
+              Eugene MT Flow Optimizer <span className="text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.38</span>
             </h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">RM Dispatch Reality Simulator</p>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">MT Dispatch Reality Simulator</p>
           </div>
         </div>
         
@@ -594,7 +658,6 @@ export default function App() {
                 <Calendar size={16} /> 현장 출하 대기열
               </h2>
               
-              {/* --- CSV Upload / Download Buttons --- */}
               <div className="flex items-center gap-2">
                 <button onClick={downloadTemplate} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 transition-colors border border-slate-200">
                   <Download size={14} /> 양식 다운
@@ -740,14 +803,14 @@ export default function App() {
                        </div>
                      </div>
                      <div className="flex items-end gap-2 mb-3">
-                       <p className="text-2xl font-black text-white">{analysis.minRequiredTrucks}<span className="text-xs ml-1 font-bold text-orange-300">대</span></p>
+                       <p className="text-2xl font-black text-white">{analysis.minRequiredTrucks}{analysis.minRequiredTrucks !== "N/A" && <span className="text-xs ml-1 font-bold text-orange-300">대</span>}</p>
                      </div>
                      <div className="bg-orange-950/40 p-2.5 rounded-xl mt-auto border border-orange-800/30">
                        <p className="text-[10px] text-orange-200 font-bold flex items-center justify-between">
                          <span>필요 용차:</span>
                          <span className="text-sm font-black text-white">
-                           {analysis.minRequiredTrucks === "B/P 한계" ? "-" : Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks)}
-                           <span className="text-[9px] font-normal ml-0.5 text-orange-300">대</span>
+                           {analysis.minRequiredTrucks === "N/A" ? "-" : Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks)}
+                           {analysis.minRequiredTrucks !== "N/A" && <span className="text-[9px] font-normal ml-0.5 text-orange-300">대</span>}
                          </span>
                        </p>
                      </div>
@@ -796,7 +859,7 @@ export default function App() {
               <div className="grid grid-cols-1 gap-4">
                 
                 {/* 1. 핵심 운용 전략 진단 */}
-                {analysis.minRequiredTrucks === "B/P 한계" || analysis.unmetVolume > 0 ? (
+                {analysis.minRequiredTrucks === "N/A" || analysis.unmetVolume > 0 ? (
                   <div className="p-5 bg-red-50 border border-red-100 rounded-3xl flex items-start gap-4 border-l-4 border-l-red-500 animate-pulse flex-col">
                     <div className="flex gap-4 w-full items-start">
                       <div className="bg-red-500 p-3 rounded-2xl shrink-0"><AlertTriangle className="text-white" size={22} /></div>
@@ -804,7 +867,11 @@ export default function App() {
                         <p className="text-[11px] text-red-900 font-black uppercase mb-1">물량 손실 발생 (위험)</p>
                         <p className="text-[10px] text-red-700 leading-relaxed font-bold">
                           현재 투입 대수로는 라스트오더 시간 내에 <strong>{analysis.unmetVolume}㎥</strong>의 물량을 소화할 수 없습니다. 
-                          {analysis.minRequiredTrucks === "B/P 한계" ? " (B/P 생산 속도 자체가 부족합니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)" : ` 최소 ${analysis.minRequiredTrucks}대 이상으로 차량을 증차하십시오.`}
+                          {analysis.minRequiredTrucks === "N/A" 
+                            ? (analysis.isBPBottleneck 
+                                ? " (B/P 생산 속도 자체가 부족합니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)" 
+                                : " (조업시간 내 출하할 수 없습니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)")
+                            : ` 최소 ${analysis.minRequiredTrucks}대 이상으로 차량을 증차하십시오.`}
                         </p>
                       </div>
                     </div>
@@ -1128,8 +1195,11 @@ export default function App() {
       )}
 
       <style>{`
+        @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        
+        * { font-family: 'Pretendard', 'Inter', sans-serif !important; }
+        
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
