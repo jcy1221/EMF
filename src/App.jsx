@@ -11,11 +11,22 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc } from 'firebase/firestore';
 
-// --- Firebase Initialization ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// --- Firebase Initialization (Graceful Degradation) ---
+let app, auth, db;
+try {
+  const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+  // Canvas 환경이 아니거나 설정이 없으면 초기화하지 않음 (에러 방지)
+  if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } else {
+    console.warn("⚠️ Firebase(클라우드) 설정이 없습니다. Vercel/로컬 환경에서는 클라우드 공유 기능이 제한됩니다.");
+  }
+} catch (error) {
+  console.error("Firebase 초기화 오류:", error);
+}
+
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- Preset Data ---
@@ -87,7 +98,19 @@ export default function App() {
 
   // --- 2. Auth & Mobile Detect ---
   useEffect(() => {
-    // Firebase 인증 초기화
+    // 모바일 감지
+    const handleResizeOrDetect = () => {
+      const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
+      const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      const isExtremelyNarrow = window.innerWidth < 768;
+      setIsMobile(isRealMobileOS || isExtremelyNarrow);
+    };
+    handleResizeOrDetect();
+    window.addEventListener('resize', handleResizeOrDetect);
+
+    // Firebase 인증 초기화 (auth 객체가 있을 때만)
+    if (!auth) return;
+
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -103,18 +126,8 @@ export default function App() {
     
     const unsubscribe = onAuthStateChanged(auth, setUser);
 
-    // 모바일 감지
-    const handleResizeOrDetect = () => {
-      const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
-      const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-      const isExtremelyNarrow = window.innerWidth < 768;
-      setIsMobile(isRealMobileOS || isExtremelyNarrow);
-    };
-    handleResizeOrDetect();
-    window.addEventListener('resize', handleResizeOrDetect);
-
     return () => {
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
       window.removeEventListener('resize', handleResizeOrDetect);
     };
   }, []);
@@ -122,12 +135,9 @@ export default function App() {
   // --- 3. Load Shared Cloud Data ---
   useEffect(() => {
     const loadSharedData = async () => {
-      if (!user) return; // 인증될 때까지 대기
-      
       const params = new URLSearchParams(window.location.search);
-      const shareId = params.get('id'); // 짧아진 ID 파라미터 사용
       
-      // 하위 호환: 만약 기존의 긴 URL(share 파라미터)로 들어오면 그대로 파싱
+      // 하위 호환: 만약 기존의 긴 URL(share 파라미터)로 들어오면 그대로 파싱 (DB 없어도 됨)
       const legacyShareData = params.get('share');
       if (legacyShareData) {
         try {
@@ -139,10 +149,12 @@ export default function App() {
         return;
       }
 
-      // 클라우드 데이터 로딩
+      // DB나 User가 없으면 클라우드 로딩 시도 안 함
+      if (!db || !user) return; 
+
+      const shareId = params.get('id'); // 짧아진 ID 파라미터 사용
       if (shareId) {
         try {
-          // RULE 1: 정확한 public data 경로 사용
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
           const docSnap = await getDoc(docRef);
           
@@ -186,6 +198,13 @@ export default function App() {
 
   // --- 5. Cloud Share Handler ---
   const handleShare = async () => {
+    // Vercel 환경 방어 코드
+    if (!db || !auth) {
+      setToastMsg('⚠️ 외부 서버(Vercel 등)에서는 자체 DB를 연결해야 공유 기능을 쓸 수 있습니다.');
+      setTimeout(() => setToastMsg(''), 3500);
+      return;
+    }
+
     if (!user) {
       setToastMsg('시스템에 연결 중입니다. 잠시 후 다시 시도해주세요.');
       setTimeout(() => setToastMsg(''), 3000);
@@ -620,7 +639,7 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100 hidden md:block"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-base md:text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.41</span>
+              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.42</span>
             </h1>
             <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest hidden md:block">MT Dispatch Reality Simulator</p>
           </div>
