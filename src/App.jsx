@@ -640,31 +640,34 @@ export default function App() {
   // --- Main UI Rendering ---
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden select-none relative">
-      <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-3 flex justify-between items-center shrink-0 z-30 shadow-sm relative">
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="bg-indigo-900 p-2.5 rounded-xl shadow-lg shadow-indigo-100 hidden md:block"><Zap className="text-yellow-400 fill-yellow-400" size={24} /></div>
-          <div>
-            <h1 className="text-lg md:text-xl font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-xs bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.45</span>
+      <header className="bg-white border-b border-slate-200 px-3 md:px-8 py-2.5 md:py-3 flex justify-between items-center shrink-0 z-30 shadow-sm relative overflow-hidden">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0 pr-2">
+          <div className="bg-indigo-900 p-2 md:p-2.5 rounded-xl shadow-lg shadow-indigo-100 hidden sm:block shrink-0">
+            <Zap className="text-yellow-400 fill-yellow-400" size={24} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
+              <span className="truncate">Eugene MT Flow Optimizer</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.46</span>
             </h1>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5">MT Dispatch Reality Simulator</p>
+            <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
         </div>
         
-        <div className="flex gap-2 md:gap-3">
-          <button onClick={handleLegacyShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors shadow-sm active:scale-95 group">
+        <div className="flex gap-1.5 md:gap-3 shrink-0">
+          <button onClick={handleLegacyShare} className="flex items-center justify-center gap-1.5 md:gap-2 w-9 h-9 md:w-auto md:h-auto md:px-5 md:py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors shadow-sm active:scale-95 group shrink-0">
             <Link size={16} className="group-hover:text-slate-800" />
-            <span className="text-xs md:text-sm font-black uppercase">일반 공유</span>
+            <span className="hidden md:inline text-xs md:text-sm font-black uppercase">일반 공유</span>
           </button>
 
-          <button onClick={handleShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-colors shadow-sm active:scale-95 group">
+          <button onClick={handleShare} className="flex items-center justify-center gap-1.5 md:gap-2 w-9 h-9 md:w-auto md:h-auto md:px-5 md:py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-colors shadow-sm active:scale-95 group shrink-0">
             <Share2 size={16} className="group-hover:text-indigo-600" />
-            <span className="text-xs md:text-sm font-black uppercase">클라우드 공유</span>
+            <span className="hidden md:inline text-xs md:text-sm font-black uppercase">클라우드 공유</span>
           </button>
 
-          <div className={`flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-xl border-2 transition-all ${analysis.unmetVolume > 0 ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 shadow-sm'}`}>
-            <AlertTriangle size={16} className={analysis.unmetVolume > 0 ? 'animate-pulse' : ''} />
-            <span className="text-xs md:text-sm font-black uppercase tracking-tight whitespace-nowrap">{analysis.unmetVolume > 0 ? `손실예상: ${analysis.unmetVolume} ㎥` : '100% 소화 가능'}</span>
+          <div className={`flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-6 md:py-2.5 rounded-xl border-2 transition-all shrink-0 ${analysis.unmetVolume > 0 ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 shadow-sm'}`}>
+            <AlertTriangle size={14} className={`md:w-4 md:h-4 ${analysis.unmetVolume > 0 ? 'animate-pulse' : ''}`} />
+            <span className="text-[10px] md:text-sm font-black uppercase tracking-tight whitespace-nowrap">{analysis.unmetVolume > 0 ? `손실: ${analysis.unmetVolume} ㎥` : '100% 소화'}</span>
           </div>
         </div>
       </header>
@@ -870,54 +873,54 @@ export default function App() {
 
         {/* Right Panel (Dashboard) */}
         <div className={`${isMobile ? 'w-full p-4' : 'w-[48%] p-6 border-l border-slate-200'} bg-white flex flex-col z-20 overflow-y-auto custom-scrollbar`}>
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-4 md:space-y-5">
             
-            <section className="bg-indigo-950 text-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl relative overflow-hidden group">
+            <section className="bg-indigo-950 text-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-xl relative overflow-hidden group">
               <div className="relative z-10">
-                <h3 className="text-indigo-400 text-xs font-black uppercase tracking-[0.4em] mb-8 flex items-center gap-2">
+                <h3 className="text-indigo-400 text-xs font-black uppercase tracking-[0.4em] mb-4 flex items-center gap-2">
                   <Activity size={18} /> Operation Live Feed
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-4 md:gap-6 mb-8 pb-8 border-b border-indigo-900/50">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 pb-5 border-b border-indigo-900/50">
                   <div>
-                    <p className="text-xs text-indigo-300 font-bold mb-2 uppercase tracking-tighter">예정량 (Total Demand)</p>
-                    <div className="flex items-baseline gap-2"><span className="text-4xl md:text-5xl font-black tracking-tighter">{analysis.totalPlannedVolume}</span><span className="text-base md:text-lg font-bold text-indigo-500">㎥</span></div>
+                    <p className="text-xs text-indigo-300 font-bold mb-1.5 uppercase tracking-tighter">예정량 (Total Demand)</p>
+                    <div className="flex items-baseline gap-2"><span className="text-3xl md:text-5xl font-black tracking-tighter">{analysis.totalPlannedVolume}</span><span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span></div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-indigo-300 font-bold mb-2 uppercase tracking-tighter">예상 출하량 (Expected Output)</p>
+                    <p className="text-xs text-indigo-300 font-bold mb-1.5 uppercase tracking-tighter">예상 출하량 (Expected Output)</p>
                     <div className="flex items-baseline gap-2 justify-end">
-                      <span className={`text-4xl md:text-5xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{analysis.expectedOutput}</span>
-                      <span className="text-base md:text-lg font-bold text-indigo-500">㎥</span>
+                      <span className={`text-3xl md:text-5xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{analysis.expectedOutput}</span>
+                      <span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 md:gap-5 mb-8">
-                  <div className="bg-indigo-900/40 p-5 rounded-2xl border border-indigo-800/50 relative overflow-visible flex flex-col">
-                     <div className="absolute top-0 right-0 w-10 h-10 md:w-12 md:h-12 bg-indigo-500/20 rounded-bl-full" />
-                     <div className="flex items-center gap-2 mb-2 relative">
-                       <p className="text-xs text-indigo-400 font-bold uppercase flex items-center gap-1.5"><CheckCircle2 size={14} /> 지연 제로 대수</p>
+                <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5">
+                  <div className="bg-indigo-900/40 p-4 md:p-5 rounded-2xl border border-indigo-800/50 relative overflow-visible flex flex-col">
+                     <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-indigo-500/20 rounded-bl-full" />
+                     <div className="flex items-center gap-2 mb-1.5 relative">
+                       <p className="text-[11px] md:text-xs text-indigo-400 font-bold uppercase flex items-center gap-1.5"><CheckCircle2 size={14} /> 지연 제로 대수</p>
                      </div>
-                     <div className="flex items-end gap-2 mb-4 mt-2">
+                     <div className="flex items-end gap-2 mb-3 mt-1">
                        <p className="text-2xl md:text-3xl font-black text-white">{analysis.idealPeakTrucks}<span className="text-xs md:text-sm ml-1.5 font-bold text-indigo-300">대</span></p>
                      </div>
-                     <div className="bg-indigo-950/60 p-3 rounded-xl mt-auto border border-indigo-800/30">
-                       <p className="text-[11px] md:text-xs text-indigo-200 font-bold flex items-center justify-between">
+                     <div className="bg-indigo-950/60 p-2.5 md:p-3 rounded-xl mt-auto border border-indigo-800/30">
+                       <p className="text-[10px] md:text-xs text-indigo-200 font-bold flex items-center justify-between">
                          <span>필요 용차:</span>
                          <span className="text-sm md:text-base font-black text-white">{Math.max(0, analysis.idealPeakTrucks - factoryConfig.ownTrucks)}<span className="text-[10px] md:text-xs font-normal ml-1 text-indigo-300">대</span></span>
                        </p>
                      </div>
                   </div>
-                  <div className="bg-orange-900/20 p-5 rounded-2xl border border-orange-900/50 relative overflow-visible flex flex-col">
-                     <div className="absolute top-0 right-0 w-10 h-10 md:w-12 md:h-12 bg-orange-500/10 rounded-bl-full" />
-                     <div className="flex items-center gap-2 mb-2 relative">
-                       <p className="text-xs text-orange-400 font-bold uppercase flex items-center gap-1.5"><AlertTriangle size={14} /> 물량 소화 최소 대수</p>
+                  <div className="bg-orange-900/20 p-4 md:p-5 rounded-2xl border border-orange-900/50 relative overflow-visible flex flex-col">
+                     <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-orange-500/10 rounded-bl-full" />
+                     <div className="flex items-center gap-2 mb-1.5 relative">
+                       <p className="text-[11px] md:text-xs text-orange-400 font-bold uppercase flex items-center gap-1.5"><AlertTriangle size={14} /> 물량 소화 최소 대수</p>
                      </div>
-                     <div className="flex items-end gap-2 mb-4 mt-2">
+                     <div className="flex items-end gap-2 mb-3 mt-1">
                        <p className="text-2xl md:text-3xl font-black text-white">{analysis.minRequiredTrucks}{analysis.minRequiredTrucks !== "N/A" && <span className="text-xs md:text-sm ml-1.5 font-bold text-orange-300">대</span>}</p>
                      </div>
-                     <div className="bg-orange-950/40 p-3 rounded-xl mt-auto border border-orange-800/30">
-                       <p className="text-[11px] md:text-xs text-orange-200 font-bold flex items-center justify-between">
+                     <div className="bg-orange-950/40 p-2.5 md:p-3 rounded-xl mt-auto border border-orange-800/30">
+                       <p className="text-[10px] md:text-xs text-orange-200 font-bold flex items-center justify-between">
                          <span>필요 용차:</span>
                          <span className="text-sm md:text-base font-black text-white">
                            {analysis.minRequiredTrucks === "N/A" ? "-" : Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks)}
@@ -928,31 +931,31 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                  <div className="flex justify-between items-center text-xs font-black bg-white/5 p-4 rounded-xl">
-                    <span className="text-slate-400">현재 계획된 총 대수: <span className="text-white text-sm md:text-base ml-2">{analysis.totalActualTrucks}대</span></span>
+                <div className="flex flex-col gap-3">
+                  <div className="flex justify-between items-center text-xs font-black bg-white/5 p-3.5 md:p-4 rounded-xl">
+                    <span className="text-slate-400">계획된 투입: <span className="text-white text-sm md:text-base ml-1.5">{analysis.totalActualTrucks}대</span></span>
                     <span className="text-indigo-300">자차 {factoryConfig.ownTrucks}대 + 용차 {factoryConfig.plannedExtTrucks}대</span>
                   </div>
                   <div className="flex bg-indigo-900/40 rounded-xl border border-indigo-800/50 divide-x divide-indigo-800/50 overflow-hidden">
-                    <div className="flex-1 p-3 md:p-4 flex justify-between items-center">
+                    <div className="flex-1 p-2.5 md:p-3 flex justify-between items-center">
                       <span className="text-xs text-indigo-400 font-bold uppercase">자차 회전수</span>
                       <span className="text-sm md:text-base font-black text-white">{analysis.avgTripsOwn}<span className="text-[10px] md:text-xs ml-1 text-indigo-300">회전</span></span>
                     </div>
-                    <div className="flex-1 p-3 md:p-4 flex justify-between items-center">
+                    <div className="flex-1 p-2.5 md:p-3 flex justify-between items-center">
                       <span className="text-xs text-orange-400 font-bold uppercase">용차 회전수</span>
                       <span className="text-sm md:text-base font-black text-orange-400">{analysis.avgTripsExt}<span className="text-[10px] md:text-xs ml-1 text-orange-300">회전</span></span>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-                    <button onClick={() => setActiveModal('supply')} className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-sm py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
-                      <BarChart3 size={18} /> 수급 흐름
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                    <button onClick={() => setActiveModal('supply')} className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-sm py-3 md:py-3.5 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 transition-all shadow-lg active:scale-95">
+                      <BarChart3 size={16} /> 수급 흐름
                     </button>
-                    <button onClick={() => setActiveModal('sensitivity')} className="bg-orange-600 hover:bg-orange-500 text-white font-black text-xs md:text-sm py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
-                      <TrendingUp size={18} /> 증감 시뮬레이터
+                    <button onClick={() => setActiveModal('sensitivity')} className="bg-orange-600 hover:bg-orange-500 text-white font-black text-xs md:text-sm py-3 md:py-3.5 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 transition-all shadow-lg active:scale-95">
+                      <TrendingUp size={16} /> 증감 시뮬레이터
                     </button>
-                    <button onClick={() => setActiveModal('hourlyTable')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs md:text-sm py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
-                      <TableIcon size={18} /> 시간대별 출하표
+                    <button onClick={() => setActiveModal('hourlyTable')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs md:text-sm py-3 md:py-3.5 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 transition-all shadow-lg active:scale-95">
+                      <TableIcon size={16} /> 출하표 비교
                     </button>
                   </div>
                 </div>
@@ -966,13 +969,13 @@ export default function App() {
                 <ShieldAlert size={20} className="text-indigo-600" /> Diagnostic Report
               </h3>
               
-              <div className="grid grid-cols-1 gap-5">
+              <div className="grid grid-cols-1 gap-4">
                 {analysis.minRequiredTrucks === "N/A" || analysis.unmetVolume > 0 ? (
-                  <div className="p-5 md:p-6 bg-red-50 border border-red-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-red-500 animate-pulse flex-col">
-                    <div className="flex gap-4 md:gap-5 w-full items-start">
-                      <div className="bg-red-500 p-3 md:p-4 rounded-2xl shrink-0"><AlertTriangle className="text-white" size={24} /></div>
+                  <div className="p-4 md:p-5 bg-red-50 border border-red-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-red-500 animate-pulse flex-col">
+                    <div className="flex gap-3 md:gap-4 w-full items-start">
+                      <div className="bg-red-500 p-2.5 md:p-3 rounded-2xl shrink-0"><AlertTriangle className="text-white" size={20} /></div>
                       <div className="flex-1">
-                        <p className="text-sm md:text-base text-red-900 font-black uppercase mb-2">물량 손실 발생 (위험)</p>
+                        <p className="text-sm md:text-base text-red-900 font-black uppercase mb-1.5">물량 손실 발생 (위험)</p>
                         <p className="text-xs md:text-sm text-red-700 leading-relaxed font-bold">
                           현재 투입 대수로는 라스트오더 시간 내에 <strong>{analysis.unmetVolume}㎥</strong>의 물량을 소화할 수 없습니다. 
                           {analysis.minRequiredTrucks === "N/A" 
@@ -984,14 +987,14 @@ export default function App() {
                       </div>
                     </div>
                     {analysis.delayReport && analysis.delayReport.length > 0 && (
-                      <div className="w-full mt-4 bg-red-100/50 rounded-2xl p-4 md:p-5">
-                        <p className="text-xs md:text-sm font-black text-red-900 border-b border-red-200 pb-2.5 mb-3">예상 지연 현장 상세</p>
-                        <div className="space-y-2">
+                      <div className="w-full mt-3 bg-red-100/50 rounded-2xl p-3 md:p-4">
+                        <p className="text-xs font-black text-red-900 border-b border-red-200 pb-2 mb-2.5">예상 지연 현장 상세</p>
+                        <div className="space-y-1.5">
                           {analysis.delayReport.map((rpt, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-xs md:text-sm bg-white/60 px-4 py-3 rounded-xl">
+                            <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
                               <span className="font-bold text-red-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
                               <span className="text-red-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                              <span className="text-red-600 font-black bg-red-100 px-3 py-1 rounded-md text-[10px] md:text-xs">최대 {rpt.maxDelay}분 지연</span>
+                              <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {rpt.maxDelay}분 지연</span>
                             </div>
                           ))}
                         </div>
@@ -999,35 +1002,35 @@ export default function App() {
                     )}
                   </div>
                 ) : analysis.totalActualTrucks >= analysis.idealPeakTrucks ? (
-                  <div className="p-5 md:p-6 bg-indigo-50 border border-indigo-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-indigo-500">
-                    <div className="bg-indigo-500 p-3 md:p-4 rounded-2xl shrink-0"><CheckCircle2 className="text-white" size={24} /></div>
+                  <div className="p-4 md:p-5 bg-indigo-50 border border-indigo-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-indigo-500">
+                    <div className="bg-indigo-500 p-2.5 md:p-3 rounded-2xl shrink-0"><CheckCircle2 className="text-white" size={20} /></div>
                     <div className="flex-1">
-                      <p className="text-sm md:text-base text-indigo-900 font-black uppercase mb-2">전 현장 대응 가능</p>
+                      <p className="text-sm md:text-base text-indigo-900 font-black uppercase mb-1.5">전 현장 대응 가능</p>
                       <p className="text-xs md:text-sm text-indigo-700 leading-relaxed font-bold">
                         모든 현장의 요구 물량과 간격을 100% 충족하며 지연 없이 출하가 가능합니다.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-5 md:p-6 bg-orange-50 border border-orange-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-orange-500 flex-col">
-                    <div className="flex gap-4 md:gap-5 w-full items-start">
-                      <div className="bg-orange-500 p-3 md:p-4 rounded-2xl shrink-0"><TrendingUp className="text-white" size={24} /></div>
+                  <div className="p-4 md:p-5 bg-orange-50 border border-orange-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-orange-500 flex-col">
+                    <div className="flex gap-3 md:gap-4 w-full items-start">
+                      <div className="bg-orange-500 p-2.5 md:p-3 rounded-2xl shrink-0"><TrendingUp className="text-white" size={20} /></div>
                       <div className="flex-1">
-                        <p className="text-sm md:text-base text-orange-900 font-black uppercase mb-2">일부 지연 발생</p>
+                        <p className="text-sm md:text-base text-orange-900 font-black uppercase mb-1.5">일부 지연 발생</p>
                         <p className="text-xs md:text-sm text-orange-700 leading-relaxed font-bold">
                           물량은 100% 소화하지만 피크타임에 현장 배차 간격이 약간 지연될 수 있습니다. 전체적인 운송 효율은 양호한 편이나, 현장에서 타설 끊김 클레임이 발생할 수 있으니 유의가 필요합니다.
                         </p>
                       </div>
                     </div>
                     {analysis.delayReport && analysis.delayReport.length > 0 && (
-                      <div className="w-full mt-4 bg-orange-100/50 rounded-2xl p-4 md:p-5">
-                        <p className="text-xs md:text-sm font-black text-orange-900 border-b border-orange-200 pb-2.5 mb-3">예상 지연 현장 상세</p>
-                        <div className="space-y-2">
+                      <div className="w-full mt-3 bg-orange-100/50 rounded-2xl p-3 md:p-4">
+                        <p className="text-xs font-black text-orange-900 border-b border-orange-200 pb-2 mb-2.5">예상 지연 현장 상세</p>
+                        <div className="space-y-1.5">
                           {analysis.delayReport.map((rpt, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-xs md:text-sm bg-white/60 px-4 py-3 rounded-xl">
+                            <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
                               <span className="font-bold text-orange-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
                               <span className="text-orange-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                              <span className="text-red-500 font-black bg-orange-100 px-3 py-1 rounded-md text-[10px] md:text-xs">최대 {rpt.maxDelay}분 지연</span>
+                              <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {rpt.maxDelay}분 지연</span>
                             </div>
                           ))}
                         </div>
@@ -1037,10 +1040,10 @@ export default function App() {
                 )}
 
                 {(factoryConfig.plannedExtTrucks > 0 && Number(analysis.avgTripsExt) <= Number(analysis.avgTripsOwn) * 0.7) && (
-                  <div className="p-5 md:p-6 bg-slate-900 border border-slate-800 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5">
-                    <div className="bg-slate-700 p-3 md:p-4 rounded-2xl shrink-0"><Info className="text-white" size={24} /></div>
+                  <div className="p-4 md:p-5 bg-slate-900 border border-slate-800 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5">
+                    <div className="bg-slate-700 p-2.5 md:p-3 rounded-2xl shrink-0"><Info className="text-white" size={20} /></div>
                     <div className="flex-1">
-                      <p className="text-sm md:text-base text-slate-300 font-black uppercase mb-2">용차 운용 효율 저하</p>
+                      <p className="text-sm md:text-base text-slate-300 font-black uppercase mb-1.5">용차 운용 효율 저하</p>
                       <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-bold">
                         용차의 평균 회전수({analysis.avgTripsExt}회)가 자차({analysis.avgTripsOwn}회) 대비 70% 이하로 매우 낮습니다. 불필요하게 많은 용차가 투입되었거나 특정 시간에만 몰려있습니다.
                       </p>
