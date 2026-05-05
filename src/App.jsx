@@ -3,8 +3,20 @@ import {
   Factory, Truck, Clock, AlertTriangle, CheckCircle2, 
   Settings2, Plus, Trash2, Coffee, TrendingUp, Info, Zap, 
   Calendar, BarChart3, Activity, ShieldAlert, HelpCircle, X, LayoutTemplate,
-  Table as TableIcon, Download, Upload, Monitor, Share2
+  Table as TableIcon, Download, Upload, Share2, Cloud // using standard icons
 } from 'lucide-react';
+
+// --- Firebase Imports ---
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, getDoc } from 'firebase/firestore';
+
+// --- Firebase Initialization ---
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- Preset Data ---
 const FACTORY_PRESETS = {
@@ -38,6 +50,7 @@ export default function App() {
   // --- 1. State Management ---
   const [isMobile, setIsMobile] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [user, setUser] = useState(null); // Firebase Auth State
   
   const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
   const [activeModal, setActiveModal] = useState(null); 
@@ -72,37 +85,86 @@ export default function App() {
     }
   ]);
 
-  // --- Initialize from Shared URL & Mobile Detect ---
+  // --- 2. Auth & Mobile Detect ---
   useEffect(() => {
-    // 1. URL 파라미터에서 공유된 데이터 복원
-    const params = new URLSearchParams(window.location.search);
-    const shareData = params.get('share');
-    if (shareData) {
+    // Firebase 인증 초기화
+    const initAuth = async () => {
       try {
-        const decoded = JSON.parse(decodeURIComponent(atob(shareData)));
-        if (decoded.factoryConfig) setFactoryConfig(decoded.factoryConfig);
-        if (decoded.sites) setSites(decoded.sites);
-        if (decoded.selectedPreset) setSelectedPreset(decoded.selectedPreset);
-      } catch (e) {
-        console.error("공유 데이터 파싱 실패", e);
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("인증 실패:", err);
       }
-    }
+    };
+    initAuth();
+    
+    const unsubscribe = onAuthStateChanged(auth, setUser);
 
-    // 2. 모바일 디바이스 또는 좁은 창 감지
+    // 모바일 감지
     const handleResizeOrDetect = () => {
       const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
       const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
       const isExtremelyNarrow = window.innerWidth < 768;
-      
       setIsMobile(isRealMobileOS || isExtremelyNarrow);
     };
-    
     handleResizeOrDetect();
     window.addEventListener('resize', handleResizeOrDetect);
-    return () => window.removeEventListener('resize', handleResizeOrDetect);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('resize', handleResizeOrDetect);
+    };
   }, []);
 
-  // --- 2. Utilities ---
+  // --- 3. Load Shared Cloud Data ---
+  useEffect(() => {
+    const loadSharedData = async () => {
+      if (!user) return; // 인증될 때까지 대기
+      
+      const params = new URLSearchParams(window.location.search);
+      const shareId = params.get('id'); // 짧아진 ID 파라미터 사용
+      
+      // 하위 호환: 만약 기존의 긴 URL(share 파라미터)로 들어오면 그대로 파싱
+      const legacyShareData = params.get('share');
+      if (legacyShareData) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(atob(legacyShareData)));
+          if (decoded.factoryConfig) setFactoryConfig(decoded.factoryConfig);
+          if (decoded.sites) setSites(decoded.sites);
+          if (decoded.selectedPreset) setSelectedPreset(decoded.selectedPreset);
+        } catch (e) { console.error(e); }
+        return;
+      }
+
+      // 클라우드 데이터 로딩
+      if (shareId) {
+        try {
+          // RULE 1: 정확한 public data 경로 사용
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.factoryConfig) setFactoryConfig(data.factoryConfig);
+            if (data.sites) setSites(data.sites);
+            if (data.selectedPreset) setSelectedPreset(data.selectedPreset);
+            
+            setToastMsg('☁️ 클라우드에서 배차 데이터를 불러왔습니다!');
+            setTimeout(() => setToastMsg(''), 3000);
+          }
+        } catch (e) {
+          console.error("클라우드 데이터 로딩 실패", e);
+        }
+      }
+    };
+    
+    loadSharedData();
+  }, [user]);
+
+  // --- 4. Utilities ---
   const timeToMinutes = (timeStr) => {
     if (!timeStr || !timeStr.includes(':')) return 0;
     const [hrs, mins] = timeStr.split(':').map(Number);
@@ -122,24 +184,48 @@ export default function App() {
     }
   };
 
-  // --- 3. URL Share Handler ---
-  const handleShare = () => {
-    const stateToShare = { factoryConfig, sites, selectedPreset };
-    // JSON 직렬화 후 Base64 + URI 인코딩으로 안전한 문자열 생성
-    const encoded = btoa(encodeURIComponent(JSON.stringify(stateToShare)));
-    const url = new URL(window.location.href);
-    url.searchParams.set('share', encoded);
+  // --- 5. Cloud Share Handler ---
+  const handleShare = async () => {
+    if (!user) {
+      setToastMsg('시스템에 연결 중입니다. 잠시 후 다시 시도해주세요.');
+      setTimeout(() => setToastMsg(''), 3000);
+      return;
+    }
     
-    // 클립보드 복사
-    const tempInput = document.createElement('input');
-    tempInput.value = url.toString();
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    document.execCommand('copy');
-    document.body.removeChild(tempInput);
-    
-    setToastMsg('현재 시뮬레이션 결과 링크가 복사되었습니다! 🎉');
-    setTimeout(() => setToastMsg(''), 3000);
+    try {
+      // 랜덤하고 짧은 8자리 고유 ID 생성
+      const shareId = crypto.randomUUID().split('-')[0];
+      const stateToShare = { 
+        factoryConfig, 
+        sites, 
+        selectedPreset,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Firestore에 데이터 저장
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
+      await setDoc(docRef, stateToShare);
+
+      // 깔끔한 URL 생성
+      const url = new URL(window.location.href);
+      url.searchParams.delete('share'); // 기존 긴 URL 파라미터 삭제
+      url.searchParams.set('id', shareId); // 새롭고 짧은 ID 세팅
+      
+      // 클립보드 복사
+      const tempInput = document.createElement('input');
+      tempInput.value = url.toString();
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      
+      setToastMsg('클라우드에 안전하게 저장하고 공유 링크를 복사했어요! ☁️🔗');
+      setTimeout(() => setToastMsg(''), 3500);
+    } catch (err) {
+      console.error("클라우드 저장 실패:", err);
+      setToastMsg('링크 생성에 실패했습니다. 다시 시도해주세요.');
+      setTimeout(() => setToastMsg(''), 3000);
+    }
   };
 
   // --- CSV Import / Export Handlers ---
@@ -198,7 +284,7 @@ export default function App() {
   };
 
 
-  // --- 4. Core Simulation Logic ---
+  // --- 6. Core Simulation Logic ---
   const analysis = useMemo(() => {
     const totalCapaPerHour = factoryConfig.bps.reduce((sum, bp) => sum + bp.capacity, 0);
     const avgProductionInterval = totalCapaPerHour > 0 ? (6 / totalCapaPerHour) * 60 : 0;
@@ -509,7 +595,7 @@ export default function App() {
     };
   }, [sites, factoryConfig]);
 
-  // --- 5. Handlers ---
+  // --- 7. Additional Handlers ---
   const handlePresetChange = (e) => {
     const presetName = e.target.value;
     setSelectedPreset(presetName);
@@ -534,17 +620,16 @@ export default function App() {
           <div className="bg-indigo-900 p-2 rounded-xl shadow-lg shadow-indigo-100 hidden md:block"><Zap className="text-yellow-400 fill-yellow-400" size={20} /></div>
           <div>
             <h1 className="text-base md:text-lg font-black text-indigo-950 flex items-center gap-2 tracking-tight uppercase">
-              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.39</span>
+              Eugene MT Flow Optimizer <span className="hidden md:inline-block text-[10px] bg-indigo-100 px-2 py-0.5 rounded text-indigo-600 uppercase font-black">v1.40</span>
             </h1>
             <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest hidden md:block">MT Dispatch Reality Simulator</p>
           </div>
         </div>
         
         <div className="flex gap-2 md:gap-3">
-          {/* 공유 버튼 추가 */}
-          <button onClick={handleShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-colors shadow-sm active:scale-95">
-            <Share2 size={14} />
-            <span className="text-[10px] md:text-xs font-black uppercase">링크 공유</span>
+          <button onClick={handleShare} className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-colors shadow-sm active:scale-95 group">
+            <Share2 size={14} className="group-hover:text-indigo-600" />
+            <span className="text-[10px] md:text-xs font-black uppercase">클라우드 공유</span>
           </button>
 
           <div className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 rounded-xl border-2 transition-all ${analysis.unmetVolume > 0 ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 shadow-sm'}`}>
@@ -1194,7 +1279,7 @@ export default function App() {
       {/* Share Toast Notification */}
       {toastMsg && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 z-[100] animate-in slide-in-from-bottom-5">
-          <CheckCircle2 size={16} className="text-emerald-400" />
+          <Cloud size={16} className="text-sky-400" />
           <span className="text-xs md:text-sm font-bold tracking-tight">{toastMsg}</span>
         </div>
       )}
