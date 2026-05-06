@@ -45,16 +45,142 @@ const FACTORY_PRESETS = {
     endTime: "17:00"
   },
   "강서공장": {
-    bps: [{ id: 1, capacity: 300 }, { id: 2, capacity: 300 }],
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
     ownTrucks: 70,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "인천공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
+    ownTrucks: 55,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "서인천공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 55,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "송도공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
+    ownTrucks: 72,
+    internalLoss: 5,
+    endTime: "18:00"
+  },
+  "서서울공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }, { id: 3, capacity: 210 }, { id: 4, capacity: 210 }],
+    ownTrucks: 150,
     internalLoss: 5,
     endTime: "17:00"
   },
   "동서울공장": {
     bps: [{ id: 1, capacity: 360 }, { id: 2, capacity: 360 }],
-    ownTrucks: 80,
+    ownTrucks: 84,
     internalLoss: 5,
     endTime: "17:00"
+  },
+  "남양주공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 24,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "동두천공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 24,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "춘천공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 12,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "수지공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 52,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "광주공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 40,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "안산공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 60,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "수원공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 49,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "지구공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 16,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "평택공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 210 }],
+    ownTrucks: 50,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "안성공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 32,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "천안공장": {
+    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
+    ownTrucks: 40,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "세종공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 32,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "당진공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 13,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "K광주공장": {
+    bps: [{ id: 1, capacity: 240 }],
+    ownTrucks: 28,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "나주공장": {
+    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
+    ownTrucks: 23,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "군산공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 12,
+    internalLoss: 5,
+    endTime: "17:00"
+  },
+  "김해공장": {
+    bps: [{ id: 1, capacity: 210 }],
+    ownTrucks: 22,
+    internalLoss: 5,
+    endTime: "16:00"
   }
 };
 
@@ -662,7 +788,7 @@ export default function App() {
           <div className="min-w-0 flex-1">
             <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
               <span className="truncate">Eugene MT Flow Optimizer</span>
-              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.53</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.54</span>
             </h1>
             <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
