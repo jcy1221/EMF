@@ -11,7 +11,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc } from 'firebase/firestore';
 
-// --- Firebase Initialization (Graceful Degradation) ---
+// --- Firebase Initialization ---
 let app, auth, db;
 try {
   const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
@@ -29,9 +29,8 @@ try {
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // ==========================================
-// 🏢 [여기에 공장 리스트를 추가하세요!] 🏢
+// 🏢 [공장 리스트 (하드코딩 영역)] 🏢
 // ==========================================
-// 양식: "공장이름": { bps: [{ id:1, capacity: 캐파 }, ...], ownTrucks: 보유자차, internalLoss: 공장로스, endTime: "라스트오더" }
 const FACTORY_PRESETS = {
   "기본 (미설정)": {
     bps: [{ id: 1, capacity: 210 }],
@@ -46,152 +45,17 @@ const FACTORY_PRESETS = {
     endTime: "17:00"
   },
   "강서공장": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
+    bps: [{ id: 1, capacity: 300 }, { id: 2, capacity: 300 }],
     ownTrucks: 70,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "인천공장": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
-    ownTrucks: 55,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "서인천공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 55,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "송도공장": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
-    ownTrucks: 72,
-    internalLoss: 5,
-    endTime: "18:00"
-  },
-  "서서울공장": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }, { id: 3, capacity: 210 }, { id: 4, capacity: 210 }],
-    ownTrucks: 150,
     internalLoss: 5,
     endTime: "17:00"
   },
   "동서울공장": {
     bps: [{ id: 1, capacity: 360 }, { id: 2, capacity: 360 }],
-    ownTrucks: 84,
+    ownTrucks: 80,
     internalLoss: 5,
     endTime: "17:00"
-  },
-  "남양주공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 24,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "동두천공장": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 24,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "춘천공장": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 12,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "수지공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 52,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "광주공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 40,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "안산공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 60,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "수원공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 49,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "지구공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 16,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "평택공장": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 210 }],
-    ownTrucks: 50,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "안성공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 32,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "천안공장": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
-    ownTrucks: 40,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "세종공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 32,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "당진공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 13,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "K광주공장": {
-    bps: [{ id: 1, capacity: 240 }],
-    ownTrucks: 28,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "나주공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 23,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "군산공장": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 12,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "김해공장": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 22,
-    internalLoss: 5,
-    endTime: "16:00"
-  },
-  // 🔽 아래에 필요한 공장들을 똑같은 양식으로 쭉 추가하시면 됩니다!
-  /*
-  "인천공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 50,
-    internalLoss: 5,
-    endTime: "17:30"
-  },
-  */
+  }
 };
 
 export default function App() {
@@ -330,6 +194,12 @@ export default function App() {
     }
   };
 
+  // 천 단위 콤마 포맷터
+  const fmt = (num) => {
+    if (num === null || num === undefined || num === "N/A") return num;
+    return Number(num).toLocaleString();
+  };
+
   // --- 5. Share Handlers ---
   const handleLegacyShare = () => {
     try {
@@ -399,7 +269,6 @@ export default function App() {
     }
   };
 
-  // --- CSV Import / Export Handlers ---
   const downloadTemplate = () => {
     const bom = "\uFEFF";
     const headers = "현장명,주문량(㎥),개시시각(HH:MM),이동시간(분),타설시간(분),복귀시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(자차우선/용차우선/무관)\n";
@@ -467,7 +336,6 @@ export default function App() {
     const endMin = Math.max(timeToMinutes("18:00"), lastOrderMin + 120);
 
     let totalPlannedVolume = 0;
-    let idealEvents = [];
     let allRequests = [];
 
     const calculatedSites = sites.map(site => {
@@ -488,13 +356,6 @@ export default function App() {
 
       for (let i = 0; i < totalTrucksForOrder; i++) {
         allRequests.push({ reqTime: currentReqTime, rt, isSpecial: site.isSpecial, specialTime: site.specialTime, strategy: site.strategy, siteName: site.name });
-
-        if (currentReqTime <= lastOrderMin) {
-          idealEvents.push({ time: currentReqTime, type: 1 });
-          let returnMin = currentReqTime + rt;
-          if (returnMin >= lunchStartMin && returnMin <= lunchEndMin) returnMin += factoryConfig.lunchBreak;
-          idealEvents.push({ time: returnMin, type: -1 });
-        }
         
         if (i < 9) {
           currentReqTime += siteBpInterval; 
@@ -507,20 +368,16 @@ export default function App() {
       return { ...site, rt, cycleTrucks, totalTrucksForOrder, isCapaShort, effectiveInterval };
     });
 
-    idealEvents.sort((a, b) => a.time === b.time ? a.type - b.type : a.time - b.time);
-    let idealPeakTrucks = 0, currentActive = 0;
-    idealEvents.forEach(e => {
-      currentActive += e.type;
-      if (currentActive > idealPeakTrucks) idealPeakTrucks = currentActive;
-    });
-
     allRequests.sort((a, b) => a.reqTime - b.reqTime);
     
+    // --- B/P 한계가 반영된 실제 시뮬레이션 엔진 ---
     const simulateDetailedVolume = (poolSize) => {
       let truckAvailTimes = Array(poolSize).fill(startMin);
       let expectedVol = 0;
       let bpAvailableAt = startMin;
       let hourlyVols = {};
+      let activeEvents = []; 
+      let activeTrucksAtMin = new Array(endMin - startMin + 1).fill(0);
 
       for (let i = 0; i < allRequests.length; i++) {
         const req = allRequests[i];
@@ -547,10 +404,28 @@ export default function App() {
         if (returnTime >= lunchStartMin && returnTime <= lunchEndMin) returnTime += factoryConfig.lunchBreak;
         truckAvailTimes[selectedIdx] = returnTime;
 
+        activeEvents.push({ time: actualT, type: 1 });
+        activeEvents.push({ time: returnTime, type: -1 });
+
+        // 이 시뮬레이션에서 실제로 분 단위로 가동 중인 트럭 수 기록 (이상적인 수요 파악용)
+        const sIdx = Math.floor(Math.max(0, actualT - startMin));
+        const eIdx = Math.floor(Math.min(returnTime - startMin, activeTrucksAtMin.length - 1));
+        for (let k = sIdx; k < eIdx; k++) {
+          activeTrucksAtMin[k]++;
+        }
+
         const bpInterval = avgProductionInterval + (req.isSpecial ? Number(req.specialTime) : 0);
         bpAvailableAt = actualT + bpInterval;
       }
-      return { expectedVol, hourlyVols };
+
+      activeEvents.sort((a, b) => a.time === b.time ? a.type - b.type : a.time - b.time);
+      let peakActive = 0, currentActive = 0;
+      activeEvents.forEach(e => {
+        currentActive += e.type;
+        if (currentActive > peakActive) peakActive = currentActive;
+      });
+
+      return { expectedVol, hourlyVols, peakActive, activeTrucksAtMin };
     };
 
     let timeLimitOnlyVolume = 0;
@@ -570,13 +445,17 @@ export default function App() {
       }
     });
 
+    // 무한대 차량 시뮬레이션을 통해 B/P 최대 소화량 및 이상적인 필요 대수(최대 효율 대수) 계산
     const maxPossibleSim = simulateDetailedVolume(999);
     const maxPossibleVol = maxPossibleSim.expectedVol;
+    const trueIdealPeakTrucks = maxPossibleSim.peakActive; 
+    const idealTrucksInUseAtMin = maxPossibleSim.activeTrucksAtMin;
+    
     let minRequiredTrucks = "N/A";
     let isBPBottleneck = (maxPossibleVol < totalPlannedVolume) && (maxPossibleVol < timeLimitOnlyVolume);
     
     if (maxPossibleVol >= totalPlannedVolume && totalPlannedVolume > 0) {
-      for (let k = 1; k <= idealPeakTrucks; k++) {
+      for (let k = 1; k <= trueIdealPeakTrucks; k++) {
         if (simulateDetailedVolume(k).expectedVol >= totalPlannedVolume) {
           minRequiredTrucks = k;
           break;
@@ -592,6 +471,8 @@ export default function App() {
     let expectedVolume = 0;
     let currentHourlyVols = {};
     let delayLogs = []; 
+
+    let actualTrucksInUseAtMin = new Array(endMin - startMin + 1).fill(0);
 
     allRequests.forEach(req => {
       let bpReadyT = Math.max(req.reqTime, bpAvailableAt);
@@ -632,27 +513,17 @@ export default function App() {
 
       const bpInterval = avgProductionInterval + (req.isSpecial ? Number(req.specialTime) : 0);
       bpAvailableAt = actualT + bpInterval;
+
+      const startIdx = Math.floor(Math.max(0, actualT - startMin));
+      const endIdx = Math.floor(Math.min(returnTime - startMin, actualTrucksInUseAtMin.length - 1));
+
+      for (let k = startIdx; k < endIdx; k++) {
+        actualTrucksInUseAtMin[k]++;
+      }
     });
 
     const expectedOutput = Math.min(totalPlannedVolume, expectedVolume);
     const unmetVolume = Math.max(0, totalPlannedVolume - expectedOutput);
-
-    let reqTrucksAtMin = new Array(endMin - startMin + 1).fill(0);
-    allRequests.forEach(req => {
-      if (req.reqTime <= lastOrderMin) {
-        let returnTime = req.reqTime + req.rt;
-        if (returnTime >= lunchStartMin && returnTime <= lunchEndMin) {
-          returnTime += factoryConfig.lunchBreak;
-        }
-        
-        const startIdx = Math.max(0, req.reqTime - startMin);
-        const endIdx = Math.min(returnTime - startMin, reqTrucksAtMin.length - 1);
-        
-        for (let k = startIdx; k < endIdx; k++) {
-          reqTrucksAtMin[k]++;
-        }
-      }
-    });
 
     const totalTrucks = factoryConfig.ownTrucks + factoryConfig.plannedExtTrucks;
     const timeSlots = [];
@@ -660,7 +531,10 @@ export default function App() {
 
     for (let m = startMin; m <= endMin; m += 10) {
       const idx = m - startMin;
-      const required = reqTrucksAtMin[idx] || 0; 
+      const required = actualTrucksInUseAtMin[idx] || 0; 
+      // [수정된 로직] 무한대 차량일 때 이 시점에 필요한 대수 - 현재 전체 투입 대수
+      const idealRequired = idealTrucksInUseAtMin[idx] || 0;
+      const shortage = Math.max(0, idealRequired - totalTrucks); 
       
       const usedOwn = Math.min(required, factoryConfig.ownTrucks);
       const usedExt = Math.max(0, required - factoryConfig.ownTrucks);
@@ -668,9 +542,7 @@ export default function App() {
       const availableOwn = Math.max(0, factoryConfig.ownTrucks - usedOwn);
       const availableExt = Math.max(0, factoryConfig.plannedExtTrucks - usedExt);
       
-      const diff = totalTrucks - required;
-      const available = Math.max(0, diff); 
-      const shortage = Math.max(0, -diff); 
+      const available = availableOwn + availableExt; 
       
       if (shortage > absoluteMaxShortage) absoluteMaxShortage = shortage;
       
@@ -721,8 +593,7 @@ export default function App() {
       });
     }
 
-    const optimalSim = simulateDetailedVolume(idealPeakTrucks > 0 ? idealPeakTrucks : 999);
-    const optimalHourlyVols = optimalSim.hourlyVols;
+    const optimalHourlyVols = maxPossibleSim.hourlyVols;
 
     let maxHour = Math.floor(endMin / 60);
     for(let h = maxHour; h >= 7; h--) {
@@ -751,7 +622,8 @@ export default function App() {
 
     return { 
       calculatedSites, totalPlannedVolume, expectedOutput, unmetVolume,
-      idealPeakTrucks, minRequiredTrucks, isBPBottleneck,
+      idealPeakTrucks: trueIdealPeakTrucks,
+      minRequiredTrucks, isBPBottleneck,
       avgTripsOwn, avgTripsExt, timeSlots, totalCapaPerHour, totalActualTrucks: totalTrucks,
       avgProductionInterval, delayReport, sensitivityData, maxPossibleVol, absoluteMaxShortage,
       hourlyTableData, sumOpt, sumCur
@@ -763,7 +635,6 @@ export default function App() {
     const presetName = e.target.value;
     setSelectedPreset(presetName);
     if (FACTORY_PRESETS[presetName]) {
-      // 선택한 하드코딩된 프리셋으로 팩토리 설정 덮어쓰기
       setFactoryConfig({ 
         ...factoryConfig, 
         ...FACTORY_PRESETS[presetName], 
@@ -791,7 +662,7 @@ export default function App() {
           <div className="min-w-0 flex-1">
             <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
               <span className="truncate">Eugene MT Flow Optimizer</span>
-              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.49</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.53</span>
             </h1>
             <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
@@ -810,7 +681,7 @@ export default function App() {
 
           <div className={`flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-6 md:py-2.5 rounded-xl border-2 transition-all shrink-0 ${analysis.unmetVolume > 0 ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-green-50 border-green-200 text-green-700 shadow-sm'}`}>
             <AlertTriangle size={14} className={`md:w-4 md:h-4 ${analysis.unmetVolume > 0 ? 'animate-pulse' : ''}`} />
-            <span className="text-[10px] md:text-sm font-black uppercase tracking-tight whitespace-nowrap">{analysis.unmetVolume > 0 ? `손실: ${analysis.unmetVolume} ㎥` : '100% 소화'}</span>
+            <span className="text-[10px] md:text-sm font-black uppercase tracking-tight whitespace-nowrap">{analysis.unmetVolume > 0 ? `손실: ${fmt(analysis.unmetVolume)} ㎥` : '100% 소화'}</span>
           </div>
         </div>
       </header>
@@ -826,7 +697,6 @@ export default function App() {
                   <Settings2 size={18} /> 공장 자원 및 운용 정책
                 </h2>
                 
-                {/* 간소화된 공장 선택 드롭다운 (하드코딩 연동) */}
                 <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
                   <span className="text-xs font-black text-slate-400 uppercase tracking-tight pl-2 hidden 2xl:inline">공장 선택</span>
                   <select 
@@ -1035,12 +905,12 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 pb-5 border-b border-indigo-900/50">
                   <div>
                     <p className="text-xs text-indigo-300 font-bold mb-1.5 uppercase tracking-tighter">예정량 (Total Demand)</p>
-                    <div className="flex items-baseline gap-2"><span className="text-3xl md:text-5xl font-black tracking-tighter">{analysis.totalPlannedVolume}</span><span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span></div>
+                    <div className="flex items-baseline gap-2"><span className="text-3xl md:text-5xl font-black tracking-tighter">{fmt(analysis.totalPlannedVolume)}</span><span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span></div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-indigo-300 font-bold mb-1.5 uppercase tracking-tighter">예상 출하량 (Expected Output)</p>
                     <div className="flex items-baseline gap-2 justify-end">
-                      <span className={`text-3xl md:text-5xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{analysis.expectedOutput}</span>
+                      <span className={`text-3xl md:text-5xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{fmt(analysis.expectedOutput)}</span>
                       <span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span>
                     </div>
                   </div>
@@ -1050,15 +920,24 @@ export default function App() {
                   <div className="bg-indigo-900/40 p-4 md:p-5 rounded-2xl border border-indigo-800/50 relative overflow-visible flex flex-col">
                      <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-indigo-500/20 rounded-bl-full" />
                      <div className="flex items-center gap-2 mb-1.5 relative">
-                       <p className="text-[11px] md:text-xs text-indigo-400 font-bold uppercase flex items-center gap-1.5"><CheckCircle2 size={14} /> 지연 제로 대수</p>
+                       <p className="text-[11px] md:text-xs text-indigo-400 font-bold uppercase flex items-center gap-1.5"><CheckCircle2 size={14} /> 최대 효율 운용 대수</p>
+                       <div className="relative group/tooltip">
+                          <HelpCircle size={14} className="text-indigo-400 cursor-help" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed whitespace-pre-wrap">
+                            B/P 최대 속도와 현장 요구시간을 모두 고려했을 때, 차가 1초도 쉬지 않고 공장을 돌아가게 만들 수 있는 <b>이상적인 최대 필요 대수</b>입니다. 이 이상 차량을 투입해도 출하량은 늘지 않고 마당 대기만 길어집니다.
+                          </div>
+                        </div>
                      </div>
-                     <div className="flex items-end gap-2 mb-3 mt-1">
-                       <p className="text-2xl md:text-3xl font-black text-white">{analysis.idealPeakTrucks}<span className="text-xs md:text-sm ml-1.5 font-bold text-indigo-300">대</span></p>
+                     <div className="flex items-end gap-2 mb-0.5 mt-1">
+                       <p className="text-2xl md:text-3xl font-black text-white">{fmt(analysis.idealPeakTrucks)}<span className="text-xs md:text-sm ml-1.5 font-bold text-indigo-300">대</span></p>
                      </div>
+                     <p className="text-[10px] text-indigo-300/60 font-bold mb-3 tracking-tight">* 초과 투입 시 마당 대기만 발생</p>
                      <div className="bg-indigo-950/60 p-2.5 md:p-3 rounded-xl mt-auto border border-indigo-800/30">
                        <p className="text-[10px] md:text-xs text-indigo-200 font-bold flex items-center justify-between">
-                         <span>필요 용차:</span>
-                         <span className="text-sm md:text-base font-black text-white">{Math.max(0, analysis.idealPeakTrucks - factoryConfig.ownTrucks)}<span className="text-[10px] md:text-xs font-normal ml-1 text-indigo-300">대</span></span>
+                         <span>최대 효율 위해 필요한 용차:</span>
+                         <span className="text-sm md:text-base font-black text-white">
+                           {fmt(Math.max(0, analysis.idealPeakTrucks - factoryConfig.ownTrucks))}<span className="text-[10px] md:text-xs font-normal ml-1 text-indigo-300">대</span>
+                         </span>
                        </p>
                      </div>
                   </div>
@@ -1067,14 +946,15 @@ export default function App() {
                      <div className="flex items-center gap-2 mb-1.5 relative">
                        <p className="text-[11px] md:text-xs text-orange-400 font-bold uppercase flex items-center gap-1.5"><AlertTriangle size={14} /> 물량 소화 최소 대수</p>
                      </div>
-                     <div className="flex items-end gap-2 mb-3 mt-1">
-                       <p className="text-2xl md:text-3xl font-black text-white">{analysis.minRequiredTrucks}{analysis.minRequiredTrucks !== "N/A" && <span className="text-xs md:text-sm ml-1.5 font-bold text-orange-300">대</span>}</p>
+                     <div className="flex items-end gap-2 mb-0.5 mt-1">
+                       <p className="text-2xl md:text-3xl font-black text-white">{fmt(analysis.minRequiredTrucks)}{analysis.minRequiredTrucks !== "N/A" && <span className="text-xs md:text-sm ml-1.5 font-bold text-orange-300">대</span>}</p>
                      </div>
+                     <p className="text-[10px] text-orange-300/60 font-bold mb-3 tracking-tight">* 물량을 전부 소화하기 위한 최소값</p>
                      <div className="bg-orange-950/40 p-2.5 md:p-3 rounded-xl mt-auto border border-orange-800/30">
                        <p className="text-[10px] md:text-xs text-orange-200 font-bold flex items-center justify-between">
-                         <span>필요 용차:</span>
+                         <span>물량 소화를 위해 필요한 용차:</span>
                          <span className="text-sm md:text-base font-black text-white">
-                           {analysis.minRequiredTrucks === "N/A" ? "-" : Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks)}
+                           {analysis.minRequiredTrucks === "N/A" ? "-" : fmt(Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks))}
                            {analysis.minRequiredTrucks !== "N/A" && <span className="text-[10px] md:text-xs font-normal ml-1 text-orange-300">대</span>}
                          </span>
                        </p>
@@ -1084,8 +964,8 @@ export default function App() {
 
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between items-center text-xs font-black bg-white/5 p-3.5 md:p-4 rounded-xl">
-                    <span className="text-slate-400">계획된 투입: <span className="text-white text-sm md:text-base ml-1.5">{analysis.totalActualTrucks}대</span></span>
-                    <span className="text-indigo-300">자차 {factoryConfig.ownTrucks}대 + 용차 {factoryConfig.plannedExtTrucks}대</span>
+                    <span className="text-slate-400">계획된 총 투입 대수: <span className="text-white text-sm md:text-base ml-1.5">{fmt(analysis.totalActualTrucks)}대</span></span>
+                    <span className="text-indigo-300">자차 {fmt(factoryConfig.ownTrucks)}대 + 용차 {fmt(factoryConfig.plannedExtTrucks)}대</span>
                   </div>
                   <div className="flex bg-indigo-900/40 rounded-xl border border-indigo-800/50 divide-x divide-indigo-800/50 overflow-hidden">
                     <div className="flex-1 p-2.5 md:p-3 flex justify-between items-center">
@@ -1128,12 +1008,12 @@ export default function App() {
                       <div className="flex-1">
                         <p className="text-sm md:text-base text-red-900 font-black uppercase mb-1.5">물량 손실 발생 (위험)</p>
                         <p className="text-xs md:text-sm text-red-700 leading-relaxed font-bold">
-                          현재 투입 대수로는 라스트오더 시간 내에 <strong>{analysis.unmetVolume}㎥</strong>의 물량을 소화할 수 없습니다. 
+                          현재 투입 대수로는 라스트오더 시간 내에 <strong>{fmt(analysis.unmetVolume)}㎥</strong>의 물량을 소화할 수 없습니다. 
                           {analysis.minRequiredTrucks === "N/A" 
                             ? (analysis.isBPBottleneck 
                                 ? " (B/P 생산 속도 자체가 부족합니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)" 
                                 : " (조업시간 내 출하할 수 없습니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)")
-                            : ` 최소 ${analysis.minRequiredTrucks}대 이상으로 차량을 증차하십시오.`}
+                            : ` 최소 ${fmt(analysis.minRequiredTrucks)}대 이상으로 차량을 증차하십시오.`}
                         </p>
                       </div>
                     </div>
@@ -1145,7 +1025,7 @@ export default function App() {
                             <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
                               <span className="font-bold text-red-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
                               <span className="text-red-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                              <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {rpt.maxDelay}분 지연</span>
+                              <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {fmt(rpt.maxDelay)}분 지연</span>
                             </div>
                           ))}
                         </div>
@@ -1158,7 +1038,7 @@ export default function App() {
                     <div className="flex-1">
                       <p className="text-sm md:text-base text-indigo-900 font-black uppercase mb-1.5">전 현장 대응 가능</p>
                       <p className="text-xs md:text-sm text-indigo-700 leading-relaxed font-bold">
-                        모든 현장의 요구 물량과 간격을 100% 충족하며 지연 없이 출하가 가능합니다.
+                        모든 현장의 요구 물량과 간격을 B/P 한계 내에서 100% 충족하며 지연 없이 출하가 가능합니다. 추가 투입 시 불필요한 대기만 늘어납니다.
                       </p>
                     </div>
                   </div>
@@ -1181,7 +1061,7 @@ export default function App() {
                             <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
                               <span className="font-bold text-orange-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
                               <span className="text-orange-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                              <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {rpt.maxDelay}분 지연</span>
+                              <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {fmt(rpt.maxDelay)}분 지연</span>
                             </div>
                           ))}
                         </div>
@@ -1260,7 +1140,7 @@ export default function App() {
                               <div className="absolute bottom-full mb-3 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom transition-all">
                                 <p className="text-sm font-black text-indigo-400 mb-1.5">{slot.time}</p>
                                 <p className="text-base font-bold">
-                                  {isShortage ? `부족대수: ${slot.shortage}대` : `대기: 자차 ${slot.availableOwn}대 + 용차 ${slot.availableExt}대`}
+                                  {isShortage ? `차량 부족 (출하 대기 중): ${fmt(slot.shortage)}대` : `공장 대기: 자차 ${fmt(slot.availableOwn)}대 + 용차 ${fmt(slot.availableExt)}대`}
                                 </p>
                               </div>
                               
@@ -1292,7 +1172,7 @@ export default function App() {
                       </div>
                     </div>
                     <p className="text-sm text-slate-500 font-bold text-center bg-slate-50 py-4 rounded-xl border border-slate-100 mt-4">
-                      현재 입력된 총 <strong className="text-indigo-600">{analysis.totalActualTrucks}대</strong> 기준 흐름입니다.
+                      현재 입력된 총 <strong className="text-indigo-600">{fmt(analysis.totalActualTrucks)}대</strong> 기준 흐름입니다.
                     </p>
                   </section>
                 )}
@@ -1304,7 +1184,7 @@ export default function App() {
                         <TrendingUp size={20} className="text-indigo-600" /> 차량 증감(±10대)에 따른 출하량 변화
                       </h3>
                       <div className="flex items-center gap-3 text-xs font-black text-slate-500 uppercase">
-                        <div className="w-8 border-t-2 border-dashed border-emerald-500" /> 예정량 ({analysis.totalPlannedVolume}㎥)
+                        <div className="w-8 border-t-2 border-dashed border-emerald-500" /> 예정량 ({fmt(analysis.totalPlannedVolume)}㎥)
                       </div>
                     </div>
                     
@@ -1316,7 +1196,7 @@ export default function App() {
                             style={{ bottom: `${(analysis.totalPlannedVolume / Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1)) * 100}%` }}
                           >
                             <span className="absolute bottom-full left-4 mb-2 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded shadow-sm whitespace-nowrap">
-                              예정량: {analysis.totalPlannedVolume}㎥
+                              예정량: {fmt(analysis.totalPlannedVolume)}㎥
                             </span>
                           </div>
                         )}
@@ -1331,9 +1211,9 @@ export default function App() {
                           return (
                             <div key={d.trucks} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                               <div className="absolute bottom-full mb-4 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom">
-                                <p className="text-sm font-black text-indigo-400 mb-2 border-b border-slate-700 pb-1.5">총 {d.trucks}대 투입 시</p>
+                                <p className="text-sm font-black text-indigo-400 mb-2 border-b border-slate-700 pb-1.5">총 {fmt(d.trucks)}대 투입 시</p>
                                 <div className="space-y-1.5">
-                                  <p className="text-sm font-bold">출하 가능: <strong className={isMeetingTarget ? "text-emerald-400 text-lg" : "text-orange-400 text-lg"}>{d.expectedOutput} ㎥</strong></p>
+                                  <p className="text-sm font-bold">출하 가능: <strong className={isMeetingTarget ? "text-emerald-400 text-lg" : "text-orange-400 text-lg"}>{fmt(d.expectedOutput)} ㎥</strong></p>
                                   {d.expectedOutput < analysis.totalPlannedVolume && (
                                     <p className="text-xs text-red-400 bg-red-950/50 px-2 py-1 rounded-lg">{-1 * (analysis.totalPlannedVolume - d.expectedOutput)} ㎥ 손실</p>
                                   )}
@@ -1350,7 +1230,7 @@ export default function App() {
                               </div>
 
                               <div className="absolute top-full mt-3 text-center w-full flex flex-col items-center">
-                                <p className={`text-sm font-black leading-tight ${isCurrent ? 'text-indigo-600' : 'text-slate-600'}`}>{d.trucks}</p>
+                                <p className={`text-sm font-black leading-tight ${isCurrent ? 'text-indigo-600' : 'text-slate-600'}`}>{fmt(d.trucks)}</p>
                                 <p className={`text-[11px] font-black tracking-tighter mt-0.5 ${isCurrent ? 'text-orange-600' : 'text-slate-400'}`}>
                                   {d.ext > 0 ? `+${d.ext}` : '-'}
                                 </p>
@@ -1381,7 +1261,7 @@ export default function App() {
                         <TableIcon size={20} className="text-indigo-600" /> 시간대별 최적 vs 현재 출하량 비교
                       </h3>
                       <div className="bg-slate-50 px-4 md:px-5 py-3 rounded-xl border border-slate-200 flex gap-4 text-sm font-black w-fit">
-                        <div className="text-slate-500">예정량 <span className="text-slate-800">{analysis.totalPlannedVolume}㎥</span></div>
+                        <div className="text-slate-500">예정량 <span className="text-slate-800">{fmt(analysis.totalPlannedVolume)}㎥</span></div>
                       </div>
                     </div>
 
@@ -1399,28 +1279,28 @@ export default function App() {
                         </thead>
                         <tbody>
                           <tr className="border-b border-slate-100 bg-white hover:bg-slate-50 transition-colors">
-                            <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[11px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? analysis.idealPeakTrucks : 'B/P최대'}대)</span></td>
+                            <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[11px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? fmt(analysis.idealPeakTrucks) : 'B/P최대'}대)</span></td>
                             {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <td key={d.hour} className="p-4 text-[15px] font-bold text-slate-700">{d.optimal || '-'}</td>
+                              <td key={d.hour} className="p-4 text-[15px] font-bold text-slate-700">{d.optimal ? fmt(d.optimal) : '-'}</td>
                             ))}
-                            <td className="p-4 text-[16px] font-black text-slate-800 border-l border-slate-100 bg-slate-50/50">{analysis.sumOpt}</td>
+                            <td className="p-4 text-[16px] font-black text-slate-800 border-l border-slate-100 bg-slate-50/50">{fmt(analysis.sumOpt)}</td>
                           </tr>
                           <tr className="border-b border-slate-200 bg-indigo-50/30 hover:bg-indigo-50 transition-colors">
-                            <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[11px] text-indigo-400 font-normal">({analysis.totalActualTrucks}대)</span></td>
+                            <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[11px] text-indigo-400 font-normal">({fmt(analysis.totalActualTrucks)}대)</span></td>
                             {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <td key={d.hour} className="p-4 text-[15px] font-black text-indigo-900">{d.current || '-'}</td>
+                              <td key={d.hour} className="p-4 text-[15px] font-black text-indigo-900">{d.current ? fmt(d.current) : '-'}</td>
                             ))}
-                            <td className="p-4 text-[16px] font-black text-indigo-700 border-l border-indigo-100/50 bg-indigo-50/50">{analysis.sumCur}</td>
+                            <td className="p-4 text-[16px] font-black text-indigo-700 border-l border-indigo-100/50 bg-indigo-50/50">{fmt(analysis.sumCur)}</td>
                           </tr>
                           <tr className="bg-slate-100/80">
                             <td className="p-4 text-[13px] font-black text-slate-600 border-r border-slate-200 bg-slate-100/90 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">GAP<br/><span className="text-[11px] text-slate-400 font-normal">(현재 - 최적)</span></td>
                             {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                               <td key={d.hour} className={`p-4 text-[15px] font-black ${d.gap > 0 ? 'text-emerald-600' : d.gap < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                                {d.gap > 0 ? `+${d.gap}` : (d.gap === 0 ? '-' : d.gap)}
+                                {d.gap > 0 ? `+${fmt(d.gap)}` : (d.gap === 0 ? '-' : fmt(d.gap))}
                               </td>
                             ))}
                             <td className={`p-4 text-[16px] font-black border-l border-slate-200 bg-slate-200/50 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                              {analysis.sumCur - analysis.sumOpt > 0 ? `+${analysis.sumCur - analysis.sumOpt}` : analysis.sumCur - analysis.sumOpt}
+                              {analysis.sumCur - analysis.sumOpt > 0 ? `+${fmt(analysis.sumCur - analysis.sumOpt)}` : fmt(analysis.sumCur - analysis.sumOpt)}
                             </td>
                           </tr>
                         </tbody>
@@ -1436,9 +1316,9 @@ export default function App() {
                           <span className="text-base font-black">전체 합계 비교</span>
                         </div>
                         <div className="text-right">
-                          <p className="text-[11px] font-bold text-slate-300">최적 <strong className="text-white">{analysis.sumOpt}</strong> / 현재 <strong className="text-indigo-300">{analysis.sumCur}</strong></p>
+                          <p className="text-[11px] font-bold text-slate-300">최적 <strong className="text-white">{fmt(analysis.sumOpt)}</strong> / 현재 <strong className="text-indigo-300">{fmt(analysis.sumCur)}</strong></p>
                           <p className={`text-lg font-black mt-0.5 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            GAP: {analysis.sumCur - analysis.sumOpt > 0 ? '+' : ''}{analysis.sumCur - analysis.sumOpt} ㎥
+                            GAP: {analysis.sumCur - analysis.sumOpt > 0 ? '+' : ''}{fmt(analysis.sumCur - analysis.sumOpt)} ㎥
                           </p>
                         </div>
                       </div>
@@ -1449,16 +1329,16 @@ export default function App() {
                           <div className="border-b border-slate-100 pb-2 mb-1 flex justify-between items-center">
                             <span className="font-black text-indigo-900 text-sm">{d.label}</span>
                             <span className={`text-[11px] font-black px-2 py-1 rounded-md ${d.gap > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : d.gap < 0 ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-                              GAP: {d.gap > 0 ? `+${d.gap}` : (d.gap === 0 ? '-' : d.gap)}
+                              GAP: {d.gap > 0 ? `+${fmt(d.gap)}` : (d.gap === 0 ? '-' : fmt(d.gap))}
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-slate-500 font-bold text-xs">최적 배차 기준</span>
-                            <span className="font-black text-slate-700">{d.optimal || '-'} <span className="text-[10px] font-normal text-slate-400">㎥</span></span>
+                            <span className="font-black text-slate-700">{d.optimal ? fmt(d.optimal) : '-'} <span className="text-[10px] font-normal text-slate-400">㎥</span></span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-indigo-500 font-bold text-xs">현재 차량 기준</span>
-                            <span className="font-black text-indigo-700">{d.current || '-'} <span className="text-[10px] font-normal text-indigo-300">㎥</span></span>
+                            <span className="font-black text-indigo-700">{d.current ? fmt(d.current) : '-'} <span className="text-[10px] font-normal text-indigo-300">㎥</span></span>
                           </div>
                         </div>
                       ))}
@@ -1469,7 +1349,7 @@ export default function App() {
                         <span className="text-slate-400 text-xs md:text-sm">최종 예정량 차이:</span>
                         <span className={`font-black ${analysis.sumCur - analysis.totalPlannedVolume < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                           {analysis.sumCur - analysis.totalPlannedVolume < 0 
-                            ? `${analysis.sumCur - analysis.totalPlannedVolume} ㎥ (미달)` 
+                            ? `${fmt(analysis.sumCur - analysis.totalPlannedVolume)} ㎥ (미달)` 
                             : '100% 소화 가능'}
                         </span>
                       </p>
