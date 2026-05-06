@@ -611,7 +611,9 @@ export default function App() {
     let currentHourlyVols = {};
     let delayLogs = []; 
 
-    let actualTrucksInUseAtMin = new Array(endMin - startMin + 1).fill(0);
+    // [수정] 차트 표시용: 자차와 용차 가동 현황을 각각 독립적으로 기록하도록 배열 분리
+    let actualOwnInUse = new Array(endMin - startMin + 1).fill(0);
+    let actualExtInUse = new Array(endMin - startMin + 1).fill(0);
 
     allRequests.forEach(req => {
       let bpReadyT = Math.max(req.reqTime, bpAvailableAt);
@@ -654,10 +656,15 @@ export default function App() {
       bpAvailableAt = actualT + bpInterval;
 
       const startIdx = Math.floor(Math.max(0, actualT - startMin));
-      const endIdx = Math.floor(Math.min(returnTime - startMin, actualTrucksInUseAtMin.length - 1));
+      const endIdx = Math.floor(Math.min(returnTime - startMin, actualOwnInUse.length - 1));
 
+      // [수정] 실제로 투입된 차량의 타입에 맞춰 분당 가동 현황 기록
       for (let k = startIdx; k < endIdx; k++) {
-        actualTrucksInUseAtMin[k]++;
+        if (selectedTruck.type === 'own') {
+          actualOwnInUse[k]++;
+        } else {
+          actualExtInUse[k]++;
+        }
       }
     });
 
@@ -670,13 +677,13 @@ export default function App() {
 
     for (let m = startMin; m <= endMin; m += 10) {
       const idx = m - startMin;
-      const required = actualTrucksInUseAtMin[idx] || 0; 
-      // [수정된 로직] 무한대 차량일 때 이 시점에 필요한 대수 - 현재 전체 투입 대수
+      
+      // [수정] 무조건 자차 먼저 뺀다고 계산하지 않고, 분리된 배열에서 실시간 사용량을 가져옴
+      const usedOwn = actualOwnInUse[idx] || 0; 
+      const usedExt = actualExtInUse[idx] || 0;
+      
       const idealRequired = idealTrucksInUseAtMin[idx] || 0;
       const shortage = Math.max(0, idealRequired - totalTrucks); 
-      
-      const usedOwn = Math.min(required, factoryConfig.ownTrucks);
-      const usedExt = Math.max(0, required - factoryConfig.ownTrucks);
       
       const availableOwn = Math.max(0, factoryConfig.ownTrucks - usedOwn);
       const availableExt = Math.max(0, factoryConfig.plannedExtTrucks - usedExt);
