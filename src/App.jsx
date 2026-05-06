@@ -230,7 +230,7 @@ export default function App() {
       targetInterval: 0,
       isSpecial: false,
       specialTime: 0,
-      strategy: "자차우선" 
+      strategy: "기본 배차" 
     }
   ]);
 
@@ -239,7 +239,6 @@ export default function App() {
     const handleResizeOrDetect = () => {
       const ua = typeof window.navigator !== "undefined" ? navigator.userAgent : "";
       const isRealMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-      // 화면이 극단적으로 좁은 경우 모바일 레이아웃으로 전환
       const isExtremelyNarrow = window.innerWidth < 768;
       setIsMobile(isRealMobileOS || isExtremelyNarrow);
     };
@@ -280,7 +279,13 @@ export default function App() {
         try {
           const decoded = JSON.parse(decodeURIComponent(atob(legacyShareData)));
           if (decoded.factoryConfig) setFactoryConfig(decoded.factoryConfig);
-          if (decoded.sites) setSites(decoded.sites);
+          // 하위 호환성: 과거 버전의 '자차우선' 등은 새 옵션으로 매핑
+          if (decoded.sites) {
+            setSites(decoded.sites.map(s => ({
+              ...s,
+              strategy: (s.strategy === "자차우선" || s.strategy === "무관") ? "기본 배차" : (s.strategy === "용차우선" ? "용차 우선" : s.strategy)
+            })));
+          }
           if (decoded.selectedPreset) setSelectedPreset(decoded.selectedPreset);
         } catch (e) { console.error(e); }
         return;
@@ -298,7 +303,12 @@ export default function App() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.factoryConfig) setFactoryConfig(data.factoryConfig);
-            if (data.sites) setSites(data.sites);
+            if (data.sites) {
+              setSites(data.sites.map(s => ({
+                ...s,
+                strategy: (s.strategy === "자차우선" || s.strategy === "무관") ? "기본 배차" : (s.strategy === "용차우선" ? "용차 우선" : s.strategy)
+              })));
+            }
             if (data.selectedPreset) setSelectedPreset(data.selectedPreset);
             
             setToastMsg('☁️ 공유된 설정 데이터를 모두 불러왔습니다!');
@@ -333,7 +343,6 @@ export default function App() {
     }
   };
 
-  // 천 단위 콤마 포맷터
   const fmt = (num) => {
     if (num === null || num === undefined || num === "N/A") return num;
     return Number(num).toLocaleString();
@@ -410,9 +419,9 @@ export default function App() {
 
   const downloadTemplate = () => {
     const bom = "\uFEFF";
-    const headers = "현장명,주문량(㎥),개시시각(HH:MM),이동시간(분),타설시간(분),복귀시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(자차우선/용차우선/무관)\n";
-    const sample1 = "A아파트 1공구,120,08:00,30,40,30,10,X,0,자차우선\n";
-    const sample2 = "B상가 신축,60,09:30,20,30,20,0,O,5,용차우선\n";
+    const headers = "현장명,주문량(㎥),개시시각(HH:MM),이동시간(분),타설시간(분),복귀시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(기본 배차/용차 우선/자차 전용)\n";
+    const sample1 = "A아파트 1공구,120,08:00,30,40,30,10,X,0,기본 배차\n";
+    const sample2 = "B상가 신축,60,09:30,20,30,20,0,O,5,용차 우선\n";
     
     const blob = new Blob([bom + headers + sample1 + sample2], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -437,6 +446,10 @@ export default function App() {
 
       const newSites = lines.slice(1).map((line, index) => {
         const cols = line.split(',');
+        let parsedStrategy = cols[9]?.trim() || "기본 배차";
+        if (parsedStrategy === "자차우선" || parsedStrategy === "무관") parsedStrategy = "기본 배차";
+        else if (parsedStrategy === "용차우선") parsedStrategy = "용차 우선";
+
         return {
           id: Date.now() + index,
           name: cols[0]?.trim() || `업로드 현장 ${index + 1}`,
@@ -448,7 +461,7 @@ export default function App() {
           targetInterval: Number(cols[6]) || 0,
           isSpecial: cols[7]?.trim().toUpperCase() === 'O',
           specialTime: Number(cols[8]) || 0,
-          strategy: cols[9]?.trim() || "자차우선"
+          strategy: parsedStrategy
         };
       });
 
@@ -509,7 +522,6 @@ export default function App() {
 
     allRequests.sort((a, b) => a.reqTime - b.reqTime);
     
-    // --- B/P 한계가 반영된 실제 시뮬레이션 엔진 ---
     const simulateDetailedVolume = (poolSize) => {
       let truckAvailTimes = Array(poolSize).fill(startMin);
       let expectedVol = 0;
@@ -546,7 +558,6 @@ export default function App() {
         activeEvents.push({ time: actualT, type: 1 });
         activeEvents.push({ time: returnTime, type: -1 });
 
-        // 이 시뮬레이션에서 실제로 분 단위로 가동 중인 트럭 수 기록 (이상적인 수요 파악용)
         const sIdx = Math.floor(Math.max(0, actualT - startMin));
         const eIdx = Math.floor(Math.min(returnTime - startMin, activeTrucksAtMin.length - 1));
         for (let k = sIdx; k < eIdx; k++) {
@@ -584,7 +595,6 @@ export default function App() {
       }
     });
 
-    // 무한대 차량 시뮬레이션을 통해 B/P 최대 소화량 및 이상적인 필요 대수(최대 효율 대수) 계산
     const maxPossibleSim = simulateDetailedVolume(999);
     const maxPossibleVol = maxPossibleSim.expectedVol;
     const trueIdealPeakTrucks = maxPossibleSim.peakActive; 
@@ -611,31 +621,75 @@ export default function App() {
     let currentHourlyVols = {};
     let delayLogs = []; 
 
-    // [수정] 차트 표시용: 자차와 용차 가동 현황을 각각 독립적으로 기록하도록 배열 분리
     let actualOwnInUse = new Array(endMin - startMin + 1).fill(0);
     let actualExtInUse = new Array(endMin - startMin + 1).fill(0);
 
+    // [v1.56] 현실적인 배차 알고리즘 적용 루프
     allRequests.forEach(req => {
       let bpReadyT = Math.max(req.reqTime, bpAvailableAt);
       if (bpReadyT > lastOrderMin) return;
 
       let actualT = bpReadyT;
-      let availableTrucks = trucks.filter(t => t.availableAt <= actualT);
+
+      let reqStrategy = req.strategy;
+      if (reqStrategy === "자차우선" || reqStrategy === "무관") reqStrategy = "기본 배차";
+      if (reqStrategy === "용차우선") reqStrategy = "용차 우선";
+
+      let validTrucks = trucks;
+      if (reqStrategy === "자차 전용") {
+        validTrucks = trucks.filter(t => t.type === 'own');
+      }
+
+      if (validTrucks.length === 0) return; // 자차 전용인데 자차가 아예 세팅 안된 경우 등 스킵
+
+      // 도착 시간이 빠르고, 도착 시간이 같다면 회전수가 적은 차량 우선 정렬
+      let earliestOwn = validTrucks.filter(t => t.type === 'own').sort((a,b) => a.availableAt === b.availableAt ? a.trips - b.trips : a.availableAt - b.availableAt)[0];
+      let earliestExt = validTrucks.filter(t => t.type === 'ext').sort((a,b) => a.availableAt === b.availableAt ? a.trips - b.trips : a.availableAt - b.availableAt)[0];
+
+      let ownDelay = earliestOwn ? Math.max(0, earliestOwn.availableAt - actualT) : Infinity;
+      let extDelay = earliestExt ? Math.max(0, earliestExt.availableAt - actualT) : Infinity;
+
       let selectedTruck = null;
 
-      if (availableTrucks.length === 0) {
-        const minAvailTime = Math.min(...trucks.map(t => t.availableAt));
-        actualT = Math.max(actualT, minAvailTime);
-        if (actualT > lastOrderMin) return;
-        availableTrucks = trucks.filter(t => t.availableAt <= actualT);
+      // 현재 시점의 자차 평균 회전수 계산 (용차 상한 브레이크용)
+      let currentTotalOwnTrips = trucks.filter(t => t.type === 'own').reduce((sum, t) => sum + t.trips, 0);
+      let avgOwnTrips = factoryConfig.ownTrucks > 0 ? currentTotalOwnTrips / factoryConfig.ownTrucks : 0;
+
+      if (reqStrategy === "자차 전용") {
+        selectedTruck = earliestOwn;
+      } 
+      else if (reqStrategy === "기본 배차") {
+        // 자차 우선 배차 (마당에 자차와 용차가 함께 있으면 자차 먼저 띄움)
+        if (ownDelay === 0 && extDelay === 0) selectedTruck = earliestOwn;
+        else if (ownDelay === 0) selectedTruck = earliestOwn;
+        else if (extDelay === 0) selectedTruck = earliestExt;
+        else selectedTruck = ownDelay <= extDelay ? earliestOwn : earliestExt;
+      }
+      else if (reqStrategy === "용차 우선") {
+        // [RULE 1] 용차 상한(Cap) 브레이크: 배차될 용차의 회전수가 자차 평균 회전수 이상이면 우선권 박탈
+        let isExtCapped = earliestExt && (earliestExt.trips >= avgOwnTrips);
+        
+        if (isExtCapped || !earliestExt) {
+            // 강제로 '기본 배차(자차 우선)' 로직으로 Fallback
+            if (ownDelay === 0 && extDelay === 0) selectedTruck = earliestOwn;
+            else if (ownDelay === 0) selectedTruck = earliestOwn;
+            else if (extDelay === 0) selectedTruck = earliestExt;
+            else selectedTruck = ownDelay <= extDelay ? earliestOwn : earliestExt;
+        } else {
+            // [RULE 2] 10분 지연 초과 방지: 용차가 오려면 10분 이상 지연되고, 자차가 용차보다 일찍 오면 뺏어서 배차
+            if (extDelay >= 10 && ownDelay < extDelay) {
+                selectedTruck = earliestOwn;
+            } else {
+                // 정상적으로 용차 우선 배차
+                selectedTruck = earliestExt;
+            }
+        }
       }
 
-      if (availableTrucks.length > 0) {
-        if (req.strategy === "자차우선") selectedTruck = availableTrucks.find(t => t.type === 'own') || availableTrucks[0];
-        else if (req.strategy === "용차우선") selectedTruck = availableTrucks.find(t => t.type === 'ext') || availableTrucks[0];
-        else selectedTruck = availableTrucks[0];
-      }
       if (!selectedTruck) return;
+
+      actualT = Math.max(actualT, selectedTruck.availableAt);
+      if (actualT > lastOrderMin) return;
 
       let totalDelay = actualT - req.reqTime;
       if (totalDelay > 0) {
@@ -658,7 +712,6 @@ export default function App() {
       const startIdx = Math.floor(Math.max(0, actualT - startMin));
       const endIdx = Math.floor(Math.min(returnTime - startMin, actualOwnInUse.length - 1));
 
-      // [수정] 실제로 투입된 차량의 타입에 맞춰 분당 가동 현황 기록
       for (let k = startIdx; k < endIdx; k++) {
         if (selectedTruck.type === 'own') {
           actualOwnInUse[k]++;
@@ -678,7 +731,6 @@ export default function App() {
     for (let m = startMin; m <= endMin; m += 10) {
       const idx = m - startMin;
       
-      // [수정] 무조건 자차 먼저 뺀다고 계산하지 않고, 분리된 배열에서 실시간 사용량을 가져옴
       const usedOwn = actualOwnInUse[idx] || 0; 
       const usedExt = actualExtInUse[idx] || 0;
       
@@ -793,7 +845,7 @@ export default function App() {
   const removeBP = (id) => factoryConfig.bps.length > 1 && setFactoryConfig({ ...factoryConfig, bps: factoryConfig.bps.filter(bp => bp.id !== id) });
   const updateBP = (id, cap) => setFactoryConfig({ ...factoryConfig, bps: factoryConfig.bps.map(bp => bp.id === id ? { ...bp, capacity: Number(cap) } : bp) });
   
-  const addSite = () => setSites([...sites, { id: Date.now(), name: "", volume: 0, toTime: 0, unloadTime: 0, backTime: 0, startTime: "08:00", targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "자차우선" }]);
+  const addSite = () => setSites([...sites, { id: Date.now(), name: "", volume: 0, toTime: 0, unloadTime: 0, backTime: 0, startTime: "08:00", targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
   const updateSite = (id, field, val) => setSites(sites.map(s => s.id === id ? { ...s, [field]: val } : s));
   const removeSite = (id) => setSites(sites.filter(s => s.id !== id));
 
@@ -808,7 +860,7 @@ export default function App() {
           <div className="min-w-0 flex-1">
             <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
               <span className="truncate">Eugene MT Flow Optimizer</span>
-              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.54</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.56</span>
             </h1>
             <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
@@ -834,7 +886,6 @@ export default function App() {
 
       <main className={`flex-1 flex overflow-hidden ${isMobile && !isSharedView ? 'justify-center items-center bg-slate-100' : isMobile ? 'flex-col' : ''}`}>
         
-        {/* 모바일 미지원 안내 (메인 화면 접속 시) */}
         {isMobile && !isSharedView ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 w-full h-full bg-slate-50">
             <div className="bg-white p-8 rounded-[2rem] shadow-xl max-w-sm border border-slate-200 text-center w-full animate-in zoom-in-95 duration-300">
@@ -1012,8 +1063,10 @@ export default function App() {
                               </div>
                             </div>
                           </div>
-                          <select className={`text-xs font-black p-4 rounded-xl border-none ring-1 w-full outline-none cursor-pointer ${site.strategy === '자차우선' ? 'bg-indigo-600 text-white ring-indigo-600' : site.strategy === '용차우선' ? 'bg-orange-500 text-white ring-orange-500' : 'bg-white text-slate-600 ring-slate-200'}`} value={site.strategy} onChange={e => updateSite(site.id, 'strategy', e.target.value)}>
-                            <option value="자차우선">자차우선</option><option value="용차우선">용차우선</option><option value="무관">방식 무관</option>
+                          <select className={`text-xs font-black p-4 rounded-xl border-none ring-1 w-full outline-none cursor-pointer ${site.strategy === '기본 배차' || site.strategy === '자차우선' ? 'bg-indigo-600 text-white ring-indigo-600' : site.strategy === '용차 우선' || site.strategy === '용차우선' ? 'bg-orange-500 text-white ring-orange-500' : 'bg-slate-700 text-white ring-slate-700'}`} value={site.strategy} onChange={e => updateSite(site.id, 'strategy', e.target.value)}>
+                            <option value="기본 배차">기본 배차</option>
+                            <option value="용차 우선">용차 우선</option>
+                            <option value="자차 전용">자차 전용</option>
                           </select>
                         </div>
 
