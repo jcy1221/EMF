@@ -38,19 +38,19 @@ const FACTORY_PRESETS = {
     internalLoss: 5,
     endTime: "18:00"
   },
-  "부천공장": {
+  "부천레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
     ownTrucks: 70,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "강서공장": {
+  "강서레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
     ownTrucks: 70,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "인천공장": {
+  "인천레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
     ownTrucks: 55,
     internalLoss: 5,
@@ -62,103 +62,103 @@ const FACTORY_PRESETS = {
     internalLoss: 5,
     endTime: "17:00"
   },
-  "송도공장": {
+  "송도레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
     ownTrucks: 72,
     internalLoss: 5,
     endTime: "18:00"
   },
-  "서서울공장": {
+  "서서울레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }, { id: 3, capacity: 210 }, { id: 4, capacity: 210 }],
     ownTrucks: 150,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "동서울공장": {
+  "동서울레미콘": {
     bps: [{ id: 1, capacity: 360 }, { id: 2, capacity: 360 }],
     ownTrucks: 84,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "남양주공장": {
+  "이순R 남양주": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 24,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "동두천공장": {
+  "이순R 동두천": {
     bps: [{ id: 1, capacity: 210 }],
     ownTrucks: 24,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "춘천공장": {
+  "춘천레미콘": {
     bps: [{ id: 1, capacity: 210 }],
     ownTrucks: 12,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "수지공장": {
+  "수지레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 52,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "광주공장": {
+  "광주레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 40,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "안산공장": {
+  "안산레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 60,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "수원공장": {
+  "수원레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 49,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "지구공장": {
+  "지구레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 16,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "평택공장": {
+  "평택레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 210 }],
     ownTrucks: 50,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "안성공장": {
+  "안성레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 32,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "천안공장": {
+  "천안레미콘": {
     bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
     ownTrucks: 40,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "세종공장": {
+  "세종레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 32,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "당진공장": {
+  "당진레미콘": {
     bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
     ownTrucks: 13,
     internalLoss: 5,
     endTime: "17:00"
   },
-  "K광주공장": {
+  "광주공장": {
     bps: [{ id: 1, capacity: 240 }],
     ownTrucks: 28,
     internalLoss: 5,
@@ -170,7 +170,7 @@ const FACTORY_PRESETS = {
     internalLoss: 5,
     endTime: "17:00"
   },
-  "군산공장": {
+  "군산레미콘": {
     bps: [{ id: 1, capacity: 210 }],
     ownTrucks: 12,
     internalLoss: 5,
