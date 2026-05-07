@@ -223,9 +223,8 @@ export default function App() {
       id: 1,
       name: "",
       volume: 0,        
-      toTime: 0,
-      unloadTime: 0,
-      backTime: 0,
+      travelTime: 0, // GPS 기준 총 왕복 이동시간 (가는시간+오는시간)
+      unloadTime: 0, // GPS 기준 현장 체류시간 (타설+대기)
       startTime: "08:00",
       targetInterval: 0,
       isSpecial: false,
@@ -279,10 +278,12 @@ export default function App() {
         try {
           const decoded = JSON.parse(decodeURIComponent(atob(legacyShareData)));
           if (decoded.factoryConfig) setFactoryConfig(decoded.factoryConfig);
-          // 하위 호환성: 과거 버전의 '자차우선' 등은 새 옵션으로 매핑
+          
           if (decoded.sites) {
             setSites(decoded.sites.map(s => ({
               ...s,
+              // 과거 버전 하위 호환성: toTime과 backTime이 있으면 travelTime으로 합산
+              travelTime: s.travelTime !== undefined ? s.travelTime : (Number(s.toTime) || 0) + (Number(s.backTime) || 0),
               strategy: (s.strategy === "자차우선" || s.strategy === "무관") ? "기본 배차" : (s.strategy === "용차우선" ? "용차 우선" : s.strategy)
             })));
           }
@@ -306,6 +307,7 @@ export default function App() {
             if (data.sites) {
               setSites(data.sites.map(s => ({
                 ...s,
+                travelTime: s.travelTime !== undefined ? s.travelTime : (Number(s.toTime) || 0) + (Number(s.backTime) || 0),
                 strategy: (s.strategy === "자차우선" || s.strategy === "무관") ? "기본 배차" : (s.strategy === "용차우선" ? "용차 우선" : s.strategy)
               })));
             }
@@ -419,14 +421,14 @@ export default function App() {
 
   const downloadTemplate = () => {
     const bom = "\uFEFF";
-    const headers = "현장명,주문량(㎥),개시시각(HH:MM),이동시간(분),타설시간(분),복귀시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(기본 배차/용차 우선/자차 전용)\n";
-    const sample1 = "A아파트 1공구,120,08:00,30,40,30,10,X,0,기본 배차\n";
-    const sample2 = "B상가 신축,60,09:30,20,30,20,0,O,5,용차 우선\n";
+    const headers = "현장명,주문량(㎥),개시시각(HH:MM),왕복이동시간(분),현장체류시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(기본 배차/용차 우선/자차 전용)\n";
+    const sample1 = "A아파트 1공구,120,08:00,60,40,10,X,0,기본 배차\n";
+    const sample2 = "B상가 신축,60,09:30,40,30,0,O,5,용차 우선\n";
     
     const blob = new Blob([bom + headers + sample1 + sample2], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "현장업로드_표준양식.csv";
+    link.download = "현장업로드_표준양식_v1.57.csv";
     link.click();
   };
 
@@ -446,7 +448,7 @@ export default function App() {
 
       const newSites = lines.slice(1).map((line, index) => {
         const cols = line.split(',');
-        let parsedStrategy = cols[9]?.trim() || "기본 배차";
+        let parsedStrategy = cols[8]?.trim() || "기본 배차";
         if (parsedStrategy === "자차우선" || parsedStrategy === "무관") parsedStrategy = "기본 배차";
         else if (parsedStrategy === "용차우선") parsedStrategy = "용차 우선";
 
@@ -455,12 +457,11 @@ export default function App() {
           name: cols[0]?.trim() || `업로드 현장 ${index + 1}`,
           volume: Number(cols[1]) || 0,
           startTime: cols[2]?.trim() || "08:00",
-          toTime: Number(cols[3]) || 0,
+          travelTime: Number(cols[3]) || 0,
           unloadTime: Number(cols[4]) || 0,
-          backTime: Number(cols[5]) || 0,
-          targetInterval: Number(cols[6]) || 0,
-          isSpecial: cols[7]?.trim().toUpperCase() === 'O',
-          specialTime: Number(cols[8]) || 0,
+          targetInterval: Number(cols[5]) || 0,
+          isSpecial: cols[6]?.trim().toUpperCase() === 'O',
+          specialTime: Number(cols[7]) || 0,
           strategy: parsedStrategy
         };
       });
@@ -491,7 +492,8 @@ export default function App() {
     let allRequests = [];
 
     const calculatedSites = sites.map(site => {
-      const rt = site.toTime + site.unloadTime + site.backTime + factoryConfig.internalLoss;
+      // 왕복 이동시간 + 현장 체류시간(타설) + 공장 내부 로스
+      const rt = site.travelTime + site.unloadTime + factoryConfig.internalLoss;
       const effectiveInterval = site.targetInterval > 0 ? Math.max(avgProductionInterval, site.targetInterval) : (avgProductionInterval || 10);
       const siteBpInterval = avgProductionInterval + (site.isSpecial ? Number(site.specialTime) : 0);
 
@@ -624,7 +626,7 @@ export default function App() {
     let actualOwnInUse = new Array(endMin - startMin + 1).fill(0);
     let actualExtInUse = new Array(endMin - startMin + 1).fill(0);
 
-    // [v1.56] 현실적인 배차 알고리즘 적용 루프
+    // 현실적인 배차 알고리즘 적용 루프
     allRequests.forEach(req => {
       let bpReadyT = Math.max(req.reqTime, bpAvailableAt);
       if (bpReadyT > lastOrderMin) return;
@@ -845,7 +847,7 @@ export default function App() {
   const removeBP = (id) => factoryConfig.bps.length > 1 && setFactoryConfig({ ...factoryConfig, bps: factoryConfig.bps.filter(bp => bp.id !== id) });
   const updateBP = (id, cap) => setFactoryConfig({ ...factoryConfig, bps: factoryConfig.bps.map(bp => bp.id === id ? { ...bp, capacity: Number(cap) } : bp) });
   
-  const addSite = () => setSites([...sites, { id: Date.now(), name: "", volume: 0, toTime: 0, unloadTime: 0, backTime: 0, startTime: "08:00", targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
+  const addSite = () => setSites([...sites, { id: Date.now(), name: "", volume: 0, travelTime: 0, unloadTime: 0, startTime: "08:00", targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
   const updateSite = (id, field, val) => setSites(sites.map(s => s.id === id ? { ...s, [field]: val } : s));
   const removeSite = (id) => setSites(sites.filter(s => s.id !== id));
 
@@ -860,7 +862,7 @@ export default function App() {
           <div className="min-w-0 flex-1">
             <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
               <span className="truncate">Eugene MT Flow Optimizer</span>
-              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.56</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.57</span>
             </h1>
             <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
@@ -1071,10 +1073,16 @@ export default function App() {
                         </div>
 
                         <div className="col-span-8 p-6 space-y-6">
-                          <div className="grid grid-cols-4 gap-4">
-                            <div><label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">현장 이동(분)</label><input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.toTime === 0 ? '' : site.toTime} placeholder="0" onChange={e => updateSite(site.id, 'toTime', Number(e.target.value))} /></div>
-                            <div><label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">타설 시간(분)</label><input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.unloadTime === 0 ? '' : site.unloadTime} placeholder="0" onChange={e => updateSite(site.id, 'unloadTime', Number(e.target.value))} /></div>
-                            <div><label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">공장 복귀(분)</label><input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.backTime === 0 ? '' : site.backTime} placeholder="0" onChange={e => updateSite(site.id, 'backTime', Number(e.target.value))} /></div>
+                          <div className="grid grid-cols-3 gap-4">
+                            {/* [v1.57 수정] 가는시간, 오는시간을 합쳐서 "총 왕복 이동"으로 변경. 타설시간은 "현장 체류"로 명칭 변경 */}
+                            <div>
+                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">총 왕복 이동(분)</label>
+                              <input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.travelTime === 0 ? '' : site.travelTime} placeholder="0" onChange={e => updateSite(site.id, 'travelTime', Number(e.target.value))} />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">현장 체류(분)</label>
+                              <input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.unloadTime === 0 ? '' : site.unloadTime} placeholder="0" onChange={e => updateSite(site.id, 'unloadTime', Number(e.target.value))} />
+                            </div>
                             <div>
                               <div className="flex items-center gap-1.5 mb-2.5">
                                 <label className="text-[11px] font-black text-indigo-500 uppercase tracking-tighter">요구 간격(분)</label>
@@ -1101,514 +1109,4 @@ export default function App() {
                                 <input type="checkbox" className="w-4 h-4 rounded-md text-indigo-600" checked={site.isSpecial} onChange={e => updateSite(site.id, 'isSpecial', e.target.checked)} />
                                 <span className="text-xs font-bold text-slate-500">특수배합</span>
                               </label>
-                              {site.isSpecial && <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-xs font-black text-amber-700"><span className="italic">Add:</span><input type="number" className="w-8 bg-transparent outline-none text-center" value={site.specialTime} onChange={e => updateSite(site.id, 'specialTime', Number(e.target.value))} /><span>min</span></div>}
-                            </div>
-                            <div className="flex gap-3 text-xs font-black"><div className="text-slate-400"><span className="text-slate-500 uppercase mr-1">왕복시간</span> {site.rt}분</div></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </section>
-              </div>
-            )}
-
-            {/* Right Panel (Dashboard) */}
-            <div className={`${isMobile ? 'w-full p-4' : 'w-[48%] p-6 border-l border-slate-200'} bg-white flex flex-col z-20 overflow-y-auto custom-scrollbar`}>
-              <div className="space-y-4 md:space-y-5">
-                
-                <section className="bg-indigo-950 text-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-xl relative overflow-hidden group">
-                  <div className="relative z-10">
-                    <h3 className="text-indigo-400 text-xs font-black uppercase tracking-[0.4em] mb-4 flex items-center gap-2">
-                      <Activity size={18} /> Operation Live Feed
-                    </h3>
-                    
-                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 pb-5 border-b border-indigo-900/50">
-                      <div>
-                        <p className="text-xs text-indigo-300 font-bold mb-1.5 uppercase tracking-tighter">예정량 (Total Demand)</p>
-                        <div className="flex items-baseline gap-2"><span className="text-3xl md:text-5xl font-black tracking-tighter">{fmt(analysis.totalPlannedVolume)}</span><span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span></div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-indigo-300 font-bold mb-1.5 uppercase tracking-tighter">예상 출하량 (Expected Output)</p>
-                        <div className="flex items-baseline gap-2 justify-end">
-                          <span className={`text-3xl md:text-5xl font-black tracking-tighter ${analysis.unmetVolume > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{fmt(analysis.expectedOutput)}</span>
-                          <span className="text-sm md:text-lg font-bold text-indigo-500">㎥</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5">
-                      <div className="bg-indigo-900/40 p-4 md:p-5 rounded-2xl border border-indigo-800/50 relative overflow-visible flex flex-col">
-                         <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-indigo-500/20 rounded-bl-full" />
-                         <div className="flex items-center gap-2 mb-1.5 relative">
-                           <p className="text-[11px] md:text-xs text-indigo-400 font-bold uppercase flex items-center gap-1.5"><CheckCircle2 size={14} /> 최대 효율 운용 대수</p>
-                           <div className="relative group/tooltip">
-                              <HelpCircle size={14} className="text-indigo-400 cursor-help" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed whitespace-pre-wrap">
-                                B/P 최대 속도와 현장 요구시간을 모두 고려했을 때, 차가 1초도 쉬지 않고 공장을 돌아가게 만들 수 있는 <b>이상적인 최대 필요 대수</b>입니다. 이 이상 차량을 투입해도 출하량은 늘지 않고 마당 대기만 길어집니다.
-                              </div>
-                            </div>
-                         </div>
-                         <div className="flex items-end gap-2 mb-0.5 mt-1">
-                           <p className="text-2xl md:text-3xl font-black text-white">{fmt(analysis.idealPeakTrucks)}<span className="text-xs md:text-sm ml-1.5 font-bold text-indigo-300">대</span></p>
-                         </div>
-                         <p className="text-[10px] text-indigo-300/60 font-bold mb-3 tracking-tight">* 초과 투입 시 마당 대기만 발생</p>
-                         <div className="bg-indigo-950/60 p-2.5 md:p-3 rounded-xl mt-auto border border-indigo-800/30">
-                           <p className="text-[10px] md:text-xs text-indigo-200 font-bold flex items-center justify-between">
-                             <span>최대 효율 위해 필요한 용차:</span>
-                             <span className="text-sm md:text-base font-black text-white">
-                               {fmt(Math.max(0, analysis.idealPeakTrucks - factoryConfig.ownTrucks))}<span className="text-[10px] md:text-xs font-normal ml-1 text-indigo-300">대</span>
-                             </span>
-                           </p>
-                         </div>
-                      </div>
-                      <div className="bg-orange-900/20 p-4 md:p-5 rounded-2xl border border-orange-900/50 relative overflow-visible flex flex-col">
-                         <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-orange-500/10 rounded-bl-full" />
-                         <div className="flex items-center gap-2 mb-1.5 relative">
-                           <p className="text-[11px] md:text-xs text-orange-400 font-bold uppercase flex items-center gap-1.5"><AlertTriangle size={14} /> 물량 소화 최소 대수</p>
-                         </div>
-                         <div className="flex items-end gap-2 mb-0.5 mt-1">
-                           <p className="text-2xl md:text-3xl font-black text-white">{fmt(analysis.minRequiredTrucks)}{analysis.minRequiredTrucks !== "N/A" && <span className="text-xs md:text-sm ml-1.5 font-bold text-orange-300">대</span>}</p>
-                         </div>
-                         <p className="text-[10px] text-orange-300/60 font-bold mb-3 tracking-tight">* 물량을 전부 소화하기 위한 최소값</p>
-                         <div className="bg-orange-950/40 p-2.5 md:p-3 rounded-xl mt-auto border border-orange-800/30">
-                           <p className="text-[10px] md:text-xs text-orange-200 font-bold flex items-center justify-between">
-                             <span>물량 소화를 위해 필요한 용차:</span>
-                             <span className="text-sm md:text-base font-black text-white">
-                               {analysis.minRequiredTrucks === "N/A" ? "-" : fmt(Math.max(0, analysis.minRequiredTrucks - factoryConfig.ownTrucks))}
-                               {analysis.minRequiredTrucks !== "N/A" && <span className="text-[10px] md:text-xs font-normal ml-1 text-orange-300">대</span>}
-                             </span>
-                           </p>
-                         </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <div className="flex justify-between items-center text-xs font-black bg-white/5 p-3.5 md:p-4 rounded-xl">
-                        <span className="text-slate-400">계획된 총 투입 대수: <span className="text-white text-sm md:text-base ml-1.5">{fmt(analysis.totalActualTrucks)}대</span></span>
-                        <span className="text-indigo-300">자차 {fmt(factoryConfig.ownTrucks)}대 + 용차 {fmt(factoryConfig.plannedExtTrucks)}대</span>
-                      </div>
-                      <div className="flex bg-indigo-900/40 rounded-xl border border-indigo-800/50 divide-x divide-indigo-800/50 overflow-hidden">
-                        <div className="flex-1 p-2.5 md:p-3 flex justify-between items-center">
-                          <span className="text-xs text-indigo-400 font-bold uppercase">자차 회전수</span>
-                          <span className="text-sm md:text-base font-black text-white">{analysis.avgTripsOwn}<span className="text-[10px] md:text-xs ml-1 text-indigo-300">회전</span></span>
-                        </div>
-                        <div className="flex-1 p-2.5 md:p-3 flex justify-between items-center">
-                          <span className="text-xs text-orange-400 font-bold uppercase">용차 회전수</span>
-                          <span className="text-sm md:text-base font-black text-orange-400">{analysis.avgTripsExt}<span className="text-[10px] md:text-xs ml-1 text-orange-300">회전</span></span>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
-                        <button onClick={() => setActiveModal('supply')} className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-sm py-3 md:py-3.5 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 transition-all shadow-lg active:scale-95">
-                          <BarChart3 size={16} /> 수급 흐름
-                        </button>
-                        <button onClick={() => setActiveModal('sensitivity')} className="bg-orange-600 hover:bg-orange-500 text-white font-black text-xs md:text-sm py-3 md:py-3.5 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 transition-all shadow-lg active:scale-95">
-                          <TrendingUp size={16} /> 증감 시뮬레이터
-                        </button>
-                        <button onClick={() => setActiveModal('hourlyTable')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs md:text-sm py-3 md:py-3.5 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 transition-all shadow-lg active:scale-95">
-                          <TableIcon size={16} /> 출하표 비교
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                  <Truck size={300} className="absolute -right-20 -bottom-20 opacity-[0.04] pointer-events-none rotate-12 transition-transform group-hover:scale-110 duration-1000" />
-                </section>
-
-                <section className="space-y-4 pb-12">
-                  <h3 className="text-sm md:text-[15px] font-black text-slate-500 uppercase tracking-[0.25em] px-2 flex items-center gap-2">
-                    <ShieldAlert size={20} className="text-indigo-600" /> Diagnostic Report
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 gap-4">
-                    {analysis.minRequiredTrucks === "N/A" || analysis.unmetVolume > 0 ? (
-                      <div className="p-4 md:p-5 bg-red-50 border border-red-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-red-500 animate-pulse flex-col">
-                        <div className="flex gap-3 md:gap-4 w-full items-start">
-                          <div className="bg-red-500 p-2.5 md:p-3 rounded-2xl shrink-0"><AlertTriangle className="text-white" size={20} /></div>
-                          <div className="flex-1">
-                            <p className="text-sm md:text-base text-red-900 font-black uppercase mb-1.5">물량 손실 발생 (위험)</p>
-                            <p className="text-xs md:text-sm text-red-700 leading-relaxed font-bold">
-                              현재 투입 대수로는 라스트오더 시간 내에 <strong>{fmt(analysis.unmetVolume)}㎥</strong>의 물량을 소화할 수 없습니다. 
-                              {analysis.minRequiredTrucks === "N/A" 
-                                ? (analysis.isBPBottleneck 
-                                    ? " (B/P 생산 속도 자체가 부족합니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)" 
-                                    : " (조업시간 내 출하할 수 없습니다. 현장과 협의하여 출하를 포기하거나 연장해야 합니다.)")
-                                : ` 최소 ${fmt(analysis.minRequiredTrucks)}대 이상으로 차량을 증차하십시오.`}
-                            </p>
-                          </div>
-                        </div>
-                        {analysis.delayReport && analysis.delayReport.length > 0 && (
-                          <div className="w-full mt-3 bg-red-100/50 rounded-2xl p-3 md:p-4">
-                            <p className="text-xs font-black text-red-900 border-b border-red-200 pb-2 mb-2.5">예상 지연 현장 상세</p>
-                            <div className="space-y-1.5">
-                              {analysis.delayReport.map((rpt, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
-                                  <span className="font-bold text-red-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
-                                  <span className="text-red-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                                  <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {fmt(rpt.maxDelay)}분 지연</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : analysis.totalActualTrucks >= analysis.idealPeakTrucks ? (
-                      <div className="p-4 md:p-5 bg-indigo-50 border border-indigo-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-indigo-500">
-                        <div className="bg-indigo-500 p-2.5 md:p-3 rounded-2xl shrink-0"><CheckCircle2 className="text-white" size={20} /></div>
-                        <div className="flex-1">
-                          <p className="text-sm md:text-base text-indigo-900 font-black uppercase mb-1.5">전 현장 대응 가능</p>
-                          <p className="text-xs md:text-sm text-indigo-700 leading-relaxed font-bold">
-                            모든 현장의 요구 물량과 간격을 B/P 한계 내에서 100% 충족하며 지연 없이 출하가 가능합니다. 추가 투입 시 불필요한 대기만 늘어납니다.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 md:p-5 bg-orange-50 border border-orange-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-orange-500 flex-col">
-                        <div className="flex gap-3 md:gap-4 w-full items-start">
-                          <div className="bg-orange-500 p-2.5 md:p-3 rounded-2xl shrink-0"><TrendingUp className="text-white" size={20} /></div>
-                          <div className="flex-1">
-                            <p className="text-sm md:text-base text-orange-900 font-black uppercase mb-1.5">일부 지연 발생</p>
-                            <p className="text-xs md:text-sm text-orange-700 leading-relaxed font-bold">
-                              물량은 100% 소화하지만 피크타임에 현장 배차 간격이 약간 지연될 수 있습니다. 전체적인 운송 효율은 양호한 편이나, 현장에서 타설 끊김 클레임이 발생할 수 있으니 유의가 필요합니다.
-                            </p>
-                          </div>
-                        </div>
-                        {analysis.delayReport && analysis.delayReport.length > 0 && (
-                          <div className="w-full mt-3 bg-orange-100/50 rounded-2xl p-3 md:p-4">
-                            <p className="text-xs font-black text-orange-900 border-b border-orange-200 pb-2 mb-2.5">예상 지연 현장 상세</p>
-                            <div className="space-y-1.5">
-                              {analysis.delayReport.map((rpt, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
-                                  <span className="font-bold text-orange-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
-                                  <span className="text-orange-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                                  <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {fmt(rpt.maxDelay)}분 지연</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {(factoryConfig.plannedExtTrucks > 0 && Number(analysis.avgTripsExt) <= Number(analysis.avgTripsOwn) * 0.7) && (
-                      <div className="p-4 md:p-5 bg-slate-900 border border-slate-800 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5">
-                        <div className="bg-slate-700 p-2.5 md:p-3 rounded-2xl shrink-0"><Info className="text-white" size={20} /></div>
-                        <div className="flex-1">
-                          <p className="text-sm md:text-base text-slate-300 font-black uppercase mb-1.5">용차 운용 효율 저하</p>
-                          <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-bold">
-                            용차의 평균 회전수({analysis.avgTripsExt}회)가 자차({analysis.avgTripsOwn}회) 대비 70% 이하로 매우 낮습니다. 불필요하게 많은 용차가 투입되었거나 특정 시간에만 몰려있습니다.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-              </div>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* Dynamic Modal Popups */}
-      {activeModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 md:p-8" onClick={() => setActiveModal(null)}>
-
-          {['supply', 'sensitivity', 'hourlyTable'].includes(activeModal) && (
-            <div className="bg-slate-50 w-full max-w-5xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-              <div className="bg-indigo-950 px-6 md:px-8 py-5 flex justify-between items-center shrink-0">
-                <h2 className="text-white font-black flex items-center gap-2.5 tracking-tight text-lg md:text-xl">
-                  <LayoutTemplate className="text-indigo-400" size={20} />
-                  {activeModal === 'supply' && '시간대별 차량 수급 흐름'}
-                  {activeModal === 'sensitivity' && '차량 증감에 따른 출하량 시뮬레이터'}
-                  {activeModal === 'hourlyTable' && '시간대별 출하표 비교'}
-                </h2>
-                <button onClick={() => setActiveModal(null)} className="text-indigo-400 hover:text-white transition-colors bg-indigo-900 p-2.5 rounded-full">
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="p-5 md:p-8 overflow-y-auto max-h-[80vh] custom-scrollbar">
-                
-                {activeModal === 'supply' && (
-                  <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
-                    <div className="flex items-center justify-between mb-10">
-                      <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <Clock size={20} className="text-indigo-600" /> 전체 시간대 차량 흐름 모니터링
-                      </h3>
-                      <div className="flex gap-6">
-                        <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
-                          <div className="w-4 h-4 bg-indigo-500 rounded-sm shadow-sm" /> 대기 자차
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
-                          <div className="w-4 h-4 bg-sky-400 rounded-sm shadow-sm" /> 대기 용차
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase">
-                          <div className="w-4 h-4 bg-red-500 rounded-sm shadow-sm" /> 부족 대수
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="pb-12">
-                      <div className="relative h-80 flex items-end gap-[3px] px-2 border-b-2 border-slate-200 mt-4">
-                        {analysis.timeSlots.map((slot, i) => {
-                          const isShortage = slot.shortage > 0;
-                          const displayValue = isShortage ? slot.shortage : slot.available;
-                          const maxScale = Math.max(analysis.totalActualTrucks, analysis.absoluteMaxShortage, 10);
-                          const heightPercentage = Math.min(100, (displayValue / maxScale) * 100);
-                          
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                              <div className="absolute bottom-full mb-3 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom transition-all">
-                                <p className="text-sm font-black text-indigo-400 mb-1.5">{slot.time}</p>
-                                <p className="text-base font-bold">
-                                  {isShortage ? `차량 부족 (출하 대기 중): ${fmt(slot.shortage)}대` : `공장 대기: 자차 ${fmt(slot.availableOwn)}대 + 용차 ${fmt(slot.availableExt)}대`}
-                                </p>
-                              </div>
-                              
-                              {isShortage ? (
-                                <div 
-                                  style={{ height: `${Math.max(2, heightPercentage)}%` }} 
-                                  className="w-full rounded-t-sm transition-all bg-red-500 hover:bg-red-400" 
-                                />
-                              ) : (
-                                <div 
-                                  style={{ height: `${Math.max(2, heightPercentage)}%` }} 
-                                  className="w-full flex flex-col-reverse justify-start transition-all rounded-t-sm overflow-hidden"
-                                >
-                                   <div style={{ height: `${(slot.availableOwn / (slot.availableOwn + slot.availableExt || 1)) * 100}%` }} className="w-full bg-indigo-500 hover:bg-indigo-400 transition-colors" />
-                                   {slot.availableExt > 0 && (
-                                     <div style={{ height: `${(slot.availableExt / (slot.availableOwn + slot.availableExt)) * 100}%` }} className="w-full bg-sky-400 hover:bg-sky-300 transition-colors border-b border-indigo-900/10" />
-                                   )}
-                                </div>
-                              )}
-                              
-                              {slot.time.endsWith(':00') && (
-                                <div className="absolute top-full mt-2.5 flex flex-col items-center">
-                                  <div className="w-[1px] h-3 bg-slate-300 mb-1" /><span className="text-[11px] font-black text-slate-500 tracking-tighter">{slot.time.split(':')[0]}시</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-500 font-bold text-center bg-slate-50 py-4 rounded-xl border border-slate-100 mt-4">
-                      현재 입력된 총 <strong className="text-indigo-600">{fmt(analysis.totalActualTrucks)}대</strong> 기준 흐름입니다.
-                    </p>
-                  </section>
-                )}
-
-                {activeModal === 'sensitivity' && (
-                  <section className="bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col min-w-[600px] overflow-x-auto">
-                    <div className="flex items-center justify-between mb-10">
-                      <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <TrendingUp size={20} className="text-indigo-600" /> 차량 증감(±10대)에 따른 출하량 변화
-                      </h3>
-                      <div className="flex items-center gap-3 text-xs font-black text-slate-500 uppercase">
-                        <div className="w-8 border-t-2 border-dashed border-emerald-500" /> 예정량 ({fmt(analysis.totalPlannedVolume)}㎥)
-                      </div>
-                    </div>
-                    
-                    <div className="pb-12">
-                      <div className="relative h-80 flex items-end gap-2 px-6 border-b-2 border-slate-200 mt-4">
-                        {analysis.totalPlannedVolume > 0 && (
-                          <div 
-                            className="absolute left-0 right-0 border-b-2 border-dashed border-emerald-500 z-10 pointer-events-none"
-                            style={{ bottom: `${(analysis.totalPlannedVolume / Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1)) * 100}%` }}
-                          >
-                            <span className="absolute bottom-full left-4 mb-2 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded shadow-sm whitespace-nowrap">
-                              예정량: {fmt(analysis.totalPlannedVolume)}㎥
-                            </span>
-                          </div>
-                        )}
-
-                        {analysis.sensitivityData.map(d => {
-                          const chartMaxVol = Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1);
-                          const heightPct = (d.expectedOutput / chartMaxVol) * 100;
-                          const isCurrent = d.trucks === analysis.totalActualTrucks;
-                          const isMeetingTarget = d.expectedOutput >= analysis.totalPlannedVolume;
-                          const isBPMax = d.expectedOutput === analysis.maxPossibleVol && analysis.maxPossibleVol < analysis.totalPlannedVolume;
-
-                          return (
-                            <div key={d.trucks} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                              <div className="absolute bottom-full mb-4 hidden group-hover:block z-40 bg-slate-900 text-white p-4 rounded-xl whitespace-nowrap shadow-xl scale-95 origin-bottom">
-                                <p className="text-sm font-black text-indigo-400 mb-2 border-b border-slate-700 pb-1.5">총 {fmt(d.trucks)}대 투입 시</p>
-                                <div className="space-y-1.5">
-                                  <p className="text-sm font-bold">출하 가능: <strong className={isMeetingTarget ? "text-emerald-400 text-lg" : "text-orange-400 text-lg"}>{fmt(d.expectedOutput)} ㎥</strong></p>
-                                  {d.expectedOutput < analysis.totalPlannedVolume && (
-                                    <p className="text-xs text-red-400 bg-red-950/50 px-2 py-1 rounded-lg">{-1 * (analysis.totalPlannedVolume - d.expectedOutput)} ㎥ 손실</p>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div 
-                                style={{ height: `${Math.max(2, heightPct)}%` }} 
-                                className={`w-full max-w-[40px] rounded-t-lg transition-all duration-300 relative ${
-                                  isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 opacity-100 z-20' : 'opacity-60 hover:opacity-100 z-0'
-                                } ${isMeetingTarget ? 'bg-emerald-500' : isBPMax ? 'bg-slate-400' : 'bg-orange-400'}`}
-                              >
-                                {isCurrent && <div className="absolute -top-9 left-1/2 -translate-x-1/2 text-[11px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 shadow-sm">현재</div>}
-                              </div>
-
-                              <div className="absolute top-full mt-3 text-center w-full flex flex-col items-center">
-                                <p className={`text-sm font-black leading-tight ${isCurrent ? 'text-indigo-600' : 'text-slate-600'}`}>{fmt(d.trucks)}</p>
-                                <p className={`text-[11px] font-black tracking-tighter mt-0.5 ${isCurrent ? 'text-orange-600' : 'text-slate-400'}`}>
-                                  {d.ext > 0 ? `+${d.ext}` : '-'}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center mt-5">
-                      <p className="text-sm text-slate-500 font-bold bg-slate-50 py-3 px-6 rounded-xl border border-slate-100 flex items-center gap-6">
-                        <span><span className="text-orange-500 font-black">■</span> 물량 손실</span>
-                        <span><span className="text-emerald-500 font-black">■</span> 목표 달성</span>
-                        <span><span className="text-slate-400 font-black">■</span> 공장(B/P) 한계</span>
-                      </p>
-                      <p className="text-xs text-slate-400 font-bold pr-2 tracking-tight">
-                        ※ X축 표기: 총 투입 대수 / (+추가 용차 대수)
-                      </p>
-                    </div>
-                  </section>
-                )}
-
-                {activeModal === 'hourlyTable' && (
-                  <section className="bg-white p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
-                      <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <TableIcon size={20} className="text-indigo-600" /> 시간대별 최적 vs 현재 출하량 비교
-                      </h3>
-                      <div className="bg-slate-50 px-4 md:px-5 py-3 rounded-xl border border-slate-200 flex gap-4 text-sm font-black w-fit">
-                        <div className="text-slate-500">예정량 <span className="text-slate-800">{fmt(analysis.totalPlannedVolume)}㎥</span></div>
-                      </div>
-                    </div>
-
-                    {/* PC View: Table Layout */}
-                    <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 shadow-sm custom-scrollbar">
-                      <table className="w-full text-center border-collapse whitespace-nowrap min-w-[800px]">
-                        <thead>
-                          <tr className="bg-indigo-950 border-b border-indigo-900">
-                            <th className="p-4 text-[13px] font-black text-indigo-200 w-36 border-r border-indigo-900/50 sticky left-0 bg-indigo-950 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">구분 (단위: ㎥)</th>
-                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <th key={d.hour} className="p-4 text-[13px] font-black text-white">{d.label}</th>
-                            ))}
-                            <th className="p-4 text-[13px] font-black text-emerald-300 border-l border-indigo-900/50">합계 (Total)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-slate-100 bg-white hover:bg-slate-50 transition-colors">
-                            <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[11px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? fmt(analysis.idealPeakTrucks) : 'B/P최대'}대)</span></td>
-                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <td key={d.hour} className="p-4 text-[15px] font-bold text-slate-700">{d.optimal ? fmt(d.optimal) : '-'}</td>
-                            ))}
-                            <td className="p-4 text-[16px] font-black text-slate-800 border-l border-slate-100 bg-slate-50/50">{fmt(analysis.sumOpt)}</td>
-                          </tr>
-                          <tr className="border-b border-slate-200 bg-indigo-50/30 hover:bg-indigo-50 transition-colors">
-                            <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[11px] text-indigo-400 font-normal">({fmt(analysis.totalActualTrucks)}대)</span></td>
-                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <td key={d.hour} className="p-4 text-[15px] font-black text-indigo-900">{d.current ? fmt(d.current) : '-'}</td>
-                            ))}
-                            <td className="p-4 text-[16px] font-black text-indigo-700 border-l border-indigo-100/50 bg-indigo-50/50">{fmt(analysis.sumCur)}</td>
-                          </tr>
-                          <tr className="bg-slate-100/80">
-                            <td className="p-4 text-[13px] font-black text-slate-600 border-r border-slate-200 bg-slate-100/90 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">GAP<br/><span className="text-[11px] text-slate-400 font-normal">(현재 - 최적)</span></td>
-                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <td key={d.hour} className={`p-4 text-[15px] font-black ${d.gap > 0 ? 'text-emerald-600' : d.gap < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                                {d.gap > 0 ? `+${fmt(d.gap)}` : (d.gap === 0 ? '-' : fmt(d.gap))}
-                              </td>
-                            ))}
-                            <td className={`p-4 text-[16px] font-black border-l border-slate-200 bg-slate-200/50 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                              {analysis.sumCur - analysis.sumOpt > 0 ? `+${fmt(analysis.sumCur - analysis.sumOpt)}` : fmt(analysis.sumCur - analysis.sumOpt)}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Mobile View: Vertical Card Layout */}
-                    <div className="md:hidden space-y-3">
-                      {/* Total Summary Card */}
-                      <div className="bg-slate-800 p-4 rounded-[1rem] flex justify-between items-center text-white shadow-md">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-400">Total Sum</span>
-                          <span className="text-base font-black">전체 합계 비교</span>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[11px] font-bold text-slate-300">최적 <strong className="text-white">{fmt(analysis.sumOpt)}</strong> / 현재 <strong className="text-indigo-300">{fmt(analysis.sumCur)}</strong></p>
-                          <p className={`text-lg font-black mt-0.5 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            GAP: {analysis.sumCur - analysis.sumOpt > 0 ? '+' : ''}{fmt(analysis.sumCur - analysis.sumOpt)} ㎥
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Hourly Cards */}
-                      {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                        <div key={d.hour} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2">
-                          <div className="border-b border-slate-100 pb-2 mb-1 flex justify-between items-center">
-                            <span className="font-black text-indigo-900 text-sm">{d.label}</span>
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md ${d.gap > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : d.gap < 0 ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-                              GAP: {d.gap > 0 ? `+${fmt(d.gap)}` : (d.gap === 0 ? '-' : fmt(d.gap))}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-500 font-bold text-xs">최적 배차 기준</span>
-                            <span className="font-black text-slate-700">{d.optimal ? fmt(d.optimal) : '-'} <span className="text-[10px] font-normal text-slate-400">㎥</span></span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-indigo-500 font-bold text-xs">현재 차량 기준</span>
-                            <span className="font-black text-indigo-700">{d.current ? fmt(d.current) : '-'} <span className="text-[10px] font-normal text-indigo-300">㎥</span></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex justify-end mt-6">
-                      <p className="text-sm font-bold text-slate-500 flex items-center gap-2 bg-slate-50 px-5 py-3 rounded-xl border border-slate-100 w-full md:w-auto justify-between md:justify-start">
-                        <span className="text-slate-400 text-xs md:text-sm">최종 예정량 차이:</span>
-                        <span className={`font-black ${analysis.sumCur - analysis.totalPlannedVolume < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                          {analysis.sumCur - analysis.totalPlannedVolume < 0 
-                            ? `${fmt(analysis.sumCur - analysis.totalPlannedVolume)} ㎥ (미달)` 
-                            : '100% 소화 가능'}
-                        </span>
-                      </p>
-                    </div>
-                  </section>
-                )}
-
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {toastMsg && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 z-[100] animate-in slide-in-from-bottom-5 w-max max-w-[90vw]">
-          {toastMsg.includes('☁️') ? <Cloud size={20} className="text-sky-400 shrink-0" /> : <Info size={20} className="text-indigo-400 shrink-0" />}
-          <span className="text-sm md:text-base font-bold tracking-tight truncate">{toastMsg}</span>
-        </div>
-      )}
-
-      <style>{`
-        @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        
-        * { font-family: 'Pretendard', 'Inter', sans-serif !important; }
-        
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        input[type="time"] { position: relative; -webkit-appearance: none; appearance: none; display: flex; align-items: center; justify-content: center; }
-        input[type="time"]::-webkit-calendar-picker-indicator { background: transparent; bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto; }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .85; transform: scale(0.995); } }
-        .animate-pulse { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-      `}</style>
-    </div>
-  );
-}
+                              {site.isSpecial && <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-xs font-black text-
