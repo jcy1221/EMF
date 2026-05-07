@@ -223,8 +223,8 @@ export default function App() {
       id: 1,
       name: "",
       volume: 0,        
-      travelTime: 0, // GPS 기준 총 왕복 이동시간 (가는시간+오는시간)
-      unloadTime: 0, // GPS 기준 현장 체류시간 (타설+대기)
+      travelTime: 0, 
+      unloadTime: 0, 
       startTime: "08:00",
       targetInterval: 0,
       isSpecial: false,
@@ -446,6 +446,8 @@ export default function App() {
         return;
       }
 
+      const defaultTime = (selectedPreset === "송도레미콘" || selectedPreset === "김해공장") ? "07:00" : "08:00";
+
       const newSites = lines.slice(1).map((line, index) => {
         const cols = line.split(',');
         let parsedStrategy = cols[8]?.trim() || "기본 배차";
@@ -456,7 +458,7 @@ export default function App() {
           id: Date.now() + index,
           name: cols[0]?.trim() || `업로드 현장 ${index + 1}`,
           volume: Number(cols[1]) || 0,
-          startTime: cols[2]?.trim() || "08:00",
+          startTime: cols[2]?.trim() || defaultTime,
           travelTime: Number(cols[3]) || 0,
           unloadTime: Number(cols[4]) || 0,
           targetInterval: Number(cols[5]) || 0,
@@ -841,13 +843,25 @@ export default function App() {
         bps: JSON.parse(JSON.stringify(FACTORY_PRESETS[presetName].bps)) 
       });
     }
+
+    // 공장이 바뀔 때, 아직 입력하지 않은 빈 현장의 개시시각 기본값도 상황에 맞게 싹 변경합니다.
+    const newDefaultTime = (presetName === "송도레미콘" || presetName === "김해공장") ? "07:00" : "08:00";
+    setSites(prevSites => prevSites.map(site => {
+      if (site.name === "" && site.volume === 0 && (site.startTime === "08:00" || site.startTime === "07:00")) {
+        return { ...site, startTime: newDefaultTime };
+      }
+      return site;
+    }));
   };
 
   const addBP = () => setFactoryConfig({ ...factoryConfig, bps: [...factoryConfig.bps, { id: Date.now(), capacity: 210 }] });
   const removeBP = (id) => factoryConfig.bps.length > 1 && setFactoryConfig({ ...factoryConfig, bps: factoryConfig.bps.filter(bp => bp.id !== id) });
   const updateBP = (id, cap) => setFactoryConfig({ ...factoryConfig, bps: factoryConfig.bps.map(bp => bp.id === id ? { ...bp, capacity: Number(cap) } : bp) });
   
-  const addSite = () => setSites([...sites, { id: Date.now(), name: "", volume: 0, travelTime: 0, unloadTime: 0, startTime: "08:00", targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
+  const addSite = () => {
+    const defaultTime = (selectedPreset === "송도레미콘" || selectedPreset === "김해공장") ? "07:00" : "08:00";
+    setSites([...sites, { id: Date.now(), name: "", volume: 0, travelTime: 0, unloadTime: 0, startTime: defaultTime, targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
+  };
   const updateSite = (id, field, val) => setSites(sites.map(s => s.id === id ? { ...s, [field]: val } : s));
   const removeSite = (id) => setSites(sites.filter(s => s.id !== id));
 
