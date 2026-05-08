@@ -3,10 +3,10 @@ import {
   Factory, Truck, Clock, AlertTriangle, CheckCircle2, 
   Settings2, Plus, Trash2, Coffee, TrendingUp, Info, Zap, 
   Calendar, BarChart3, Activity, ShieldAlert, HelpCircle, X, LayoutTemplate,
-  Table as TableIcon, Download, Upload, Share2, Cloud, Link, Laptop
+  Table as TableIcon, Download, Upload, Share2, Cloud, Link, Laptop, Database
 } from 'lucide-react';
 
-// --- Firebase Imports ---
+// --- Firebase Imports (현재 미사용 / 하위 호환성 유지) ---
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -20,7 +20,7 @@ try {
     auth = getAuth(app);
     db = getFirestore(app);
   } else {
-    console.warn("⚠️ Firebase(클라우드) 설정이 없습니다. Vercel/로컬 환경에서는 클라우드 공유 기능이 제한됩니다.");
+    console.warn("⚠️ Firebase 설정 없음. 클라우드 공유 제한.");
   }
 } catch (error) {
   console.error("Firebase 초기화 오류:", error);
@@ -29,166 +29,39 @@ try {
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // ==========================================
-// 🏢 [공장 리스트 (하드코딩 영역)] 🏢
+// 🏢 [공장 리스트 (하드코딩 영역)]
 // ==========================================
 const FACTORY_PRESETS = {
-  "기본 (미설정)": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 30,
-    internalLoss: 5,
-    endTime: "18:00"
-  },
-  "부천레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
-    ownTrucks: 70,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "강서레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
-    ownTrucks: 70,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "인천레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }],
-    ownTrucks: 55,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "서인천공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 55,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "송도레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
-    ownTrucks: 72,
-    internalLoss: 5,
-    endTime: "18:00"
-  },
-  "서서울레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }, { id: 3, capacity: 210 }, { id: 4, capacity: 210 }],
-    ownTrucks: 150,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "동서울레미콘": {
-    bps: [{ id: 1, capacity: 360 }, { id: 2, capacity: 360 }],
-    ownTrucks: 84,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "이순R 남양주": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 24,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "이순R 동두천": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 24,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "춘천레미콘": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 12,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "수지레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 52,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "광주레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 40,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "안산레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 60,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "수원레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 49,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "지구레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 16,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "평택레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 210 }],
-    ownTrucks: 50,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "안성레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 32,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "천안레미콘": {
-    bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }],
-    ownTrucks: 40,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "세종레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 32,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "당진레미콘": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 13,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "광주공장": {
-    bps: [{ id: 1, capacity: 240 }],
-    ownTrucks: 28,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "나주공장": {
-    bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }],
-    ownTrucks: 23,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "군산레미콘": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 12,
-    internalLoss: 5,
-    endTime: "17:00"
-  },
-  "김해공장": {
-    bps: [{ id: 1, capacity: 210 }],
-    ownTrucks: 22,
-    internalLoss: 5,
-    endTime: "16:00"
-  }
+  "기본 (미설정)": { bps: [{ id: 1, capacity: 210 }], ownTrucks: 30, internalLoss: 5, endTime: "18:00" },
+  "부천레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }], ownTrucks: 70, internalLoss: 5, endTime: "17:00" },
+  "강서레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }], ownTrucks: 70, internalLoss: 5, endTime: "17:00" },
+  "인천레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 360 }], ownTrucks: 55, internalLoss: 5, endTime: "17:00" },
+  "서인천공장": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 55, internalLoss: 5, endTime: "17:00" },
+  "송도레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }], ownTrucks: 72, internalLoss: 5, endTime: "18:00" },
+  "서서울레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }, { id: 3, capacity: 210 }, { id: 4, capacity: 210 }], ownTrucks: 150, internalLoss: 5, endTime: "17:00" },
+  "동서울레미콘": { bps: [{ id: 1, capacity: 360 }, { id: 2, capacity: 360 }], ownTrucks: 84, internalLoss: 5, endTime: "17:00" },
+  "이순R 남양주": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 24, internalLoss: 5, endTime: "17:00" },
+  "이순R 동두천": { bps: [{ id: 1, capacity: 210 }], ownTrucks: 24, internalLoss: 5, endTime: "17:00" },
+  "춘천레미콘": { bps: [{ id: 1, capacity: 210 }], ownTrucks: 12, internalLoss: 5, endTime: "17:00" },
+  "수지레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 52, internalLoss: 5, endTime: "17:00" },
+  "광주레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 40, internalLoss: 5, endTime: "17:00" },
+  "안산레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 60, internalLoss: 5, endTime: "17:00" },
+  "수원레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 49, internalLoss: 5, endTime: "17:00" },
+  "지구레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 16, internalLoss: 5, endTime: "17:00" },
+  "평택레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 210 }], ownTrucks: 50, internalLoss: 5, endTime: "17:00" },
+  "안성레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 32, internalLoss: 5, endTime: "17:00" },
+  "천안레미콘": { bps: [{ id: 1, capacity: 240 }, { id: 2, capacity: 240 }], ownTrucks: 40, internalLoss: 5, endTime: "17:00" },
+  "세종레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 32, internalLoss: 5, endTime: "17:00" },
+  "당진레미콘": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 13, internalLoss: 5, endTime: "17:00" },
+  "광주공장": { bps: [{ id: 1, capacity: 240 }], ownTrucks: 28, internalLoss: 5, endTime: "17:00" },
+  "나주공장": { bps: [{ id: 1, capacity: 210 }, { id: 2, capacity: 210 }], ownTrucks: 23, internalLoss: 5, endTime: "17:00" },
+  "군산레미콘": { bps: [{ id: 1, capacity: 210 }], ownTrucks: 12, internalLoss: 5, endTime: "17:00" },
+  "김해공장": { bps: [{ id: 1, capacity: 210 }], ownTrucks: 22, internalLoss: 5, endTime: "16:00" }
 };
 
 export default function App() {
   // --- 1. State Management ---
   const [isMobile, setIsMobile] = useState(false);
-  
-  // URL을 확인하여 공유된 뷰(모바일 허용)인지 파악하는 상태 추가
   const [isSharedView, setIsSharedView] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -202,6 +75,7 @@ export default function App() {
   
   const [activeModal, setActiveModal] = useState(null); 
   const fileInputRef = useRef(null);
+  const dataFactoryInputRef = useRef(null);
   
   const [selectedPreset, setSelectedPreset] = useState("기본 (미설정)");
 
@@ -224,7 +98,6 @@ export default function App() {
       name: "",
       volume: 0,        
       travelTime: 0, 
-      unloadTime: 0, 
       startTime: "08:00",
       targetInterval: 0,
       isSpecial: false,
@@ -232,6 +105,12 @@ export default function App() {
       strategy: "기본 배차" 
     }
   ]);
+
+  // --- Data Factory States ---
+  const [dfStatus, setDfStatus] = useState('idle'); // idle, processing, done
+  const [dfStats, setDfStats] = useState(null);
+  const [dfSiteSummary, setDfSiteSummary] = useState(null);
+  const [dfWeightSummary, setDfWeightSummary] = useState(null);
 
   // --- 2. Auth & Mobile Detect ---
   useEffect(() => {
@@ -253,79 +132,18 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (err) {
-        console.error("인증 실패:", err);
-      }
+      } catch (err) {}
     };
     initAuth();
     
     const unsubscribe = onAuthStateChanged(auth, setUser);
-
     return () => {
       if (unsubscribe) unsubscribe();
       window.removeEventListener('resize', handleResizeOrDetect);
     };
   }, []);
 
-  // --- 3. Load Shared Cloud Data ---
-  useEffect(() => {
-    const loadSharedData = async () => {
-      const params = new URLSearchParams(window.location.search);
-      
-      const legacyShareData = params.get('share');
-      if (legacyShareData) {
-        setIsSharedView(true);
-        try {
-          const decoded = JSON.parse(decodeURIComponent(atob(legacyShareData)));
-          if (decoded.factoryConfig) setFactoryConfig(decoded.factoryConfig);
-          
-          if (decoded.sites) {
-            setSites(decoded.sites.map(s => ({
-              ...s,
-              // 과거 버전 하위 호환성: toTime과 backTime이 있으면 travelTime으로 합산
-              travelTime: s.travelTime !== undefined ? s.travelTime : (Number(s.toTime) || 0) + (Number(s.backTime) || 0),
-              strategy: (s.strategy === "자차우선" || s.strategy === "무관") ? "기본 배차" : (s.strategy === "용차우선" ? "용차 우선" : s.strategy)
-            })));
-          }
-          if (decoded.selectedPreset) setSelectedPreset(decoded.selectedPreset);
-        } catch (e) { console.error(e); }
-        return;
-      }
-
-      if (!db || !user) return; 
-
-      const shareId = params.get('id');
-      if (shareId) {
-        setIsSharedView(true);
-        try {
-          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.factoryConfig) setFactoryConfig(data.factoryConfig);
-            if (data.sites) {
-              setSites(data.sites.map(s => ({
-                ...s,
-                travelTime: s.travelTime !== undefined ? s.travelTime : (Number(s.toTime) || 0) + (Number(s.backTime) || 0),
-                strategy: (s.strategy === "자차우선" || s.strategy === "무관") ? "기본 배차" : (s.strategy === "용차우선" ? "용차 우선" : s.strategy)
-              })));
-            }
-            if (data.selectedPreset) setSelectedPreset(data.selectedPreset);
-            
-            setToastMsg('☁️ 공유된 설정 데이터를 모두 불러왔습니다!');
-            setTimeout(() => setToastMsg(''), 3500);
-          }
-        } catch (e) {
-          console.error("클라우드 데이터 로딩 실패", e);
-        }
-      }
-    };
-    
-    loadSharedData();
-  }, [user]);
-
-  // --- 4. Utilities ---
+  // --- 3. Utilities ---
   const timeToMinutes = (timeStr) => {
     if (!timeStr || !timeStr.includes(':')) return 0;
     const [hrs, mins] = timeStr.split(':').map(Number);
@@ -346,71 +164,205 @@ export default function App() {
   };
 
   const fmt = (num) => {
-    if (num === null || num === undefined || num === "N/A") return num;
-    return Number(num).toLocaleString();
+    if (num === null || num === undefined || num === "N/A" || isNaN(num)) return num;
+    return Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  };
+
+  // --- 4. DATA FACTORY LOGIC (30만건 파싱 및 아웃라이어 정제) ---
+  const handleDataFactoryUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setDfStatus('processing');
+    setDfStats(null);
+    setDfSiteSummary(null);
+    setDfWeightSummary(null);
+
+    // 브라우저 멈춤을 방지하기 위해 setTimeout으로 렌더링 틈을 줍니다.
+    setTimeout(() => {
+      const reader = new FileReader();
+      // EUC-KR 인코딩 엑셀 CSV 대응
+      reader.readAsText(file, 'euc-kr');
+      
+      reader.onload = (event) => {
+        let csvText = event.target.result;
+        // 인코딩이 깨졌다면 UTF-8로 다시 시도
+        if (csvText.includes('')) {
+            const readerUtf8 = new FileReader();
+            readerUtf8.readAsText(file, 'utf-8');
+            readerUtf8.onload = (ev) => processDataFactoryText(ev.target.result);
+            return;
+        }
+        processDataFactoryText(csvText);
+      };
+    }, 100);
+  };
+
+  const processDataFactoryText = (csvText) => {
+    const lines = csvText.split('\n');
+    let totalRows = 0;
+    let validRows = 0;
+    let outlierRows = 0;
+
+    // 데이터 구조화
+    // { siteCode: { name, plant, trips: [], hourlyTrips: { "08": [], ... } } }
+    const siteData = {};
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      totalRows++;
+
+      // 쉼표 분리 (따옴표로 묶인 쉼표 처리 무시 - 심플 버전)
+      const cols = line.split(',');
+      if (cols.length < 5) continue;
+
+      const plant = cols[0].trim();
+      const siteCode = cols[1].trim();
+      const siteName = cols[2].trim();
+      const timeStr = cols[3].trim(); // HH:mm:ss
+      const travelTime = parseFloat(cols[4].trim());
+
+      if (!plant || !siteCode || isNaN(travelTime) || travelTime <= 0) {
+        outlierRows++;
+        continue;
+      }
+
+      let hour = timeStr.split(':')[0];
+      if (hour && hour.length === 1) hour = `0${hour}`; // 8 -> 08
+
+      if (!siteData[siteCode]) {
+        siteData[siteCode] = { siteCode, siteName, plant, trips: [], hourlyTrips: {} };
+      }
+
+      siteData[siteCode].trips.push(travelTime);
+      if (!siteData[siteCode].hourlyTrips[hour]) siteData[siteCode].hourlyTrips[hour] = [];
+      siteData[siteCode].hourlyTrips[hour].push(travelTime);
+    }
+
+    // 1단계: 현장별 아웃라이어 제거 (IQR 기법 적용) 및 평균 산출
+    const siteSummaries = [];
+    
+    // 2단계 가중치 계산을 위한 준비: 현장별 시간대 평균 저장
+    // { plantName: { hour1: [ratio1, ratio2...], hour2: ... } }
+    const plantHourlyRatios = {};
+
+    Object.values(siteData).forEach(site => {
+      // trips가 5개 미만인 현장은 IQR 대신 단순 평균(혹은 제외) 처리
+      const sortedTrips = [...site.trips].sort((a, b) => a - b);
+      let validTrips = sortedTrips;
+
+      if (sortedTrips.length >= 5) {
+        const q1 = sortedTrips[Math.floor(sortedTrips.length * 0.25)];
+        const q3 = sortedTrips[Math.floor(sortedTrips.length * 0.75)];
+        const iqr = q3 - q1;
+        const lowerBound = Math.max(1, q1 - 1.5 * iqr); // 최소 1분
+        const upperBound = q3 + 1.5 * iqr;
+
+        validTrips = sortedTrips.filter(t => t >= lowerBound && t <= upperBound);
+        outlierRows += (sortedTrips.length - validTrips.length);
+      }
+
+      validRows += validTrips.length;
+
+      if (validTrips.length === 0) return;
+
+      const overallAvg = validTrips.reduce((a, b) => a + b, 0) / validTrips.length;
+
+      // 시간대별 평균 산출 및 공장 가중치 비율 계산
+      const hourlyAvg = {};
+      Object.keys(site.hourlyTrips).forEach(hr => {
+        // 해당 시간대의 trip들도 아웃라이어 필터링 적용된 validTrips 범위 내에 있는지 체크
+        const validHrTrips = site.hourlyTrips[hr].filter(t => validTrips.includes(t));
+        if (validHrTrips.length > 0) {
+          const hrAvg = validHrTrips.reduce((a, b) => a + b, 0) / validHrTrips.length;
+          hourlyAvg[hr] = hrAvg;
+
+          // 공장 가중치를 위해 비율 저장 (이 시간대 평균 / 전체 평균)
+          if (!plantHourlyRatios[site.plant]) plantHourlyRatios[site.plant] = {};
+          if (!plantHourlyRatios[site.plant][hr]) plantHourlyRatios[site.plant][hr] = [];
+          
+          plantHourlyRatios[site.plant][hr].push(hrAvg / overallAvg);
+        }
+      });
+
+      siteSummaries.push({
+        plant: site.plant,
+        siteCode: site.siteCode,
+        siteName: site.siteName,
+        dataCount: validTrips.length,
+        avgTime: Math.round(overallAvg),
+        hourlyAvg: hourlyAvg
+      });
+    });
+
+    // 2단계: 공장별 시간대 가중치 산출
+    const weightSummaries = [];
+    Object.keys(plantHourlyRatios).forEach(plant => {
+      Object.keys(plantHourlyRatios[plant]).forEach(hr => {
+        const ratios = plantHourlyRatios[plant][hr];
+        const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+        weightSummaries.push({
+          plant: plant,
+          hour: hr,
+          weight: Number(avgRatio.toFixed(3)),
+          dataPoints: ratios.length // 산출에 사용된 현장 개수
+        });
+      });
+    });
+
+    setDfStats({ totalRows, validRows, outlierRows, siteCount: siteSummaries.length });
+    setDfSiteSummary(siteSummaries);
+    setDfWeightSummary(weightSummaries.sort((a, b) => a.plant.localeCompare(b.plant) || a.hour.localeCompare(b.hour)));
+    setDfStatus('done');
+  };
+
+  const downloadDataFactoryCsv = (type) => {
+    const bom = "\uFEFF";
+    let headers = "";
+    let csvContent = "";
+
+    if (type === 'site') {
+      headers = "플랜트,현장코드,현장명,유효데이터수,평균왕복시간(분)\n";
+      csvContent = dfSiteSummary.map(s => `${s.plant},${s.siteCode},"${s.siteName}",${s.dataCount},${s.avgTime}`).join("\n");
+    } else {
+      headers = "플랜트,시간대,가중치,산출기반_현장수\n";
+      csvContent = dfWeightSummary.map(w => `${w.plant},${w.hour}시,${w.weight},${w.dataPoints}`).join("\n");
+    }
+
+    const blob = new Blob([bom + headers + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = type === 'site' ? "1_현장별_평균왕복시간_요약.csv" : "2_공장별_시간대가중치_요약.csv";
+    link.click();
   };
 
   // --- 5. Share Handlers ---
-  const handleLegacyShare = () => {
-    try {
-      const stateToShare = { factoryConfig, sites, selectedPreset }; 
-      const encodedState = btoa(encodeURIComponent(JSON.stringify(stateToShare)));
-      
-      const url = new URL(window.location.href);
-      url.searchParams.delete('id');
-      url.searchParams.set('share', encodedState);
-      
-      const tempInput = document.createElement('input');
-      tempInput.value = url.toString();
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempInput);
-      
-      setToastMsg('링크가 복사되었습니다! 🔗');
-      setTimeout(() => setToastMsg(''), 3500);
-    } catch (err) {
-      setToastMsg('링크 생성에 실패했습니다. (데이터가 너무 많을 수 있습니다)');
-      setTimeout(() => setToastMsg(''), 3000);
-    }
-  };
-
-  const handleShare = async () => {
+  const handleShare = async () => { /* (기존 코드와 동일) 생략하지 않고 유지 */
     if (!db || !auth) {
       setToastMsg('⚠️ 외부 서버(Vercel 등)에서는 자체 DB 연결해야 클라우드 기능을 쓸 수 있습니다.');
       setTimeout(() => setToastMsg(''), 3500);
       return;
     }
-
     if (!user) {
       setToastMsg('시스템에 연결 중입니다. 잠시 후 다시 시도해주세요.');
       setTimeout(() => setToastMsg(''), 3000);
       return;
     }
-    
     try {
       const shareId = crypto.randomUUID().split('-')[0];
-      const stateToShare = { 
-        factoryConfig, 
-        sites, 
-        selectedPreset,
-        createdAt: new Date().toISOString()
-      };
-      
+      const stateToShare = { factoryConfig, sites, selectedPreset, createdAt: new Date().toISOString() };
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
       await setDoc(docRef, stateToShare);
-
       const url = new URL(window.location.href);
       url.searchParams.delete('share');
       url.searchParams.set('id', shareId);
-      
       const tempInput = document.createElement('input');
       tempInput.value = url.toString();
       document.body.appendChild(tempInput);
       tempInput.select();
       document.execCommand('copy');
       document.body.removeChild(tempInput);
-      
       setToastMsg('클라우드에 저장하고 공유 링크를 복사했어요! ☁️🔗');
       setTimeout(() => setToastMsg(''), 3500);
     } catch (err) {
@@ -419,16 +371,36 @@ export default function App() {
     }
   };
 
+  const handleLegacyShare = () => {
+    try {
+      const stateToShare = { factoryConfig, sites, selectedPreset }; 
+      const encodedState = btoa(encodeURIComponent(JSON.stringify(stateToShare)));
+      const url = new URL(window.location.href);
+      url.searchParams.delete('id');
+      url.searchParams.set('share', encodedState);
+      const tempInput = document.createElement('input');
+      tempInput.value = url.toString();
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      setToastMsg('링크가 복사되었습니다! 🔗');
+      setTimeout(() => setToastMsg(''), 3500);
+    } catch (err) {
+      setToastMsg('링크 생성에 실패했습니다.');
+      setTimeout(() => setToastMsg(''), 3000);
+    }
+  };
+
   const downloadTemplate = () => {
     const bom = "\uFEFF";
-    const headers = "현장명,주문량(㎥),개시시각(HH:MM),왕복이동시간(분),현장체류시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(기본 배차/용차 우선/자차 전용)\n";
-    const sample1 = "A아파트 1공구,120,08:00,60,40,10,X,0,기본 배차\n";
-    const sample2 = "B상가 신축,60,09:30,40,30,0,O,5,용차 우선\n";
-    
+    const headers = "현장명,주문량(㎥),개시시각(HH:MM),총왕복시간(분),요구간격(분),특수배합(O/X),특수추가시간(분),배차방식(기본 배차/용차 우선/자차 전용)\n";
+    const sample1 = "A아파트 1공구,120,08:00,60,10,X,0,기본 배차\n";
+    const sample2 = "B상가 신축,60,09:30,40,0,O,5,용차 우선\n";
     const blob = new Blob([bom + headers + sample1 + sample2], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "현장업로드_표준양식_v1.57.csv";
+    link.download = "현장업로드_표준양식_v1.59.csv";
     link.click();
   };
 
@@ -440,17 +412,13 @@ export default function App() {
     reader.onload = (event) => {
       const csvText = event.target.result;
       const lines = csvText.split('\n').filter(line => line.trim() !== '');
-      
-      if (lines.length <= 1) {
-        alert("데이터가 없거나 잘못된 형식입니다.");
-        return;
-      }
+      if (lines.length <= 1) { alert("데이터가 없거나 잘못된 형식입니다."); return; }
 
       const defaultTime = (selectedPreset === "송도레미콘" || selectedPreset === "김해공장") ? "07:00" : "08:00";
 
       const newSites = lines.slice(1).map((line, index) => {
         const cols = line.split(',');
-        let parsedStrategy = cols[8]?.trim() || "기본 배차";
+        let parsedStrategy = cols[7]?.trim() || "기본 배차";
         if (parsedStrategy === "자차우선" || parsedStrategy === "무관") parsedStrategy = "기본 배차";
         else if (parsedStrategy === "용차우선") parsedStrategy = "용차 우선";
 
@@ -460,10 +428,9 @@ export default function App() {
           volume: Number(cols[1]) || 0,
           startTime: cols[2]?.trim() || defaultTime,
           travelTime: Number(cols[3]) || 0,
-          unloadTime: Number(cols[4]) || 0,
-          targetInterval: Number(cols[5]) || 0,
-          isSpecial: cols[6]?.trim().toUpperCase() === 'O',
-          specialTime: Number(cols[7]) || 0,
+          targetInterval: Number(cols[4]) || 0,
+          isSpecial: cols[5]?.trim().toUpperCase() === 'O',
+          specialTime: Number(cols[6]) || 0,
           strategy: parsedStrategy
         };
       });
@@ -472,7 +439,6 @@ export default function App() {
         const filteredPrev = prev.filter(s => s.name.trim() !== "" || s.volume > 0);
         return [...filteredPrev, ...newSites];
       });
-      
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
@@ -494,8 +460,8 @@ export default function App() {
     let allRequests = [];
 
     const calculatedSites = sites.map(site => {
-      // 왕복 이동시간 + 현장 체류시간(타설) + 공장 내부 로스
-      const rt = site.travelTime + site.unloadTime + factoryConfig.internalLoss;
+      // 총 왕복시간 + 공장 내부 로스
+      const rt = site.travelTime + factoryConfig.internalLoss;
       const effectiveInterval = site.targetInterval > 0 ? Math.max(avgProductionInterval, site.targetInterval) : (avgProductionInterval || 10);
       const siteBpInterval = avgProductionInterval + (site.isSpecial ? Number(site.specialTime) : 0);
 
@@ -634,7 +600,6 @@ export default function App() {
       if (bpReadyT > lastOrderMin) return;
 
       let actualT = bpReadyT;
-
       let reqStrategy = req.strategy;
       if (reqStrategy === "자차우선" || reqStrategy === "무관") reqStrategy = "기본 배차";
       if (reqStrategy === "용차우선") reqStrategy = "용차 우선";
@@ -644,9 +609,8 @@ export default function App() {
         validTrucks = trucks.filter(t => t.type === 'own');
       }
 
-      if (validTrucks.length === 0) return; // 자차 전용인데 자차가 아예 세팅 안된 경우 등 스킵
+      if (validTrucks.length === 0) return; 
 
-      // 도착 시간이 빠르고, 도착 시간이 같다면 회전수가 적은 차량 우선 정렬
       let earliestOwn = validTrucks.filter(t => t.type === 'own').sort((a,b) => a.availableAt === b.availableAt ? a.trips - b.trips : a.availableAt - b.availableAt)[0];
       let earliestExt = validTrucks.filter(t => t.type === 'ext').sort((a,b) => a.availableAt === b.availableAt ? a.trips - b.trips : a.availableAt - b.availableAt)[0];
 
@@ -655,7 +619,6 @@ export default function App() {
 
       let selectedTruck = null;
 
-      // 현재 시점의 자차 평균 회전수 계산 (용차 상한 브레이크용)
       let currentTotalOwnTrips = trucks.filter(t => t.type === 'own').reduce((sum, t) => sum + t.trips, 0);
       let avgOwnTrips = factoryConfig.ownTrucks > 0 ? currentTotalOwnTrips / factoryConfig.ownTrucks : 0;
 
@@ -663,30 +626,22 @@ export default function App() {
         selectedTruck = earliestOwn;
       } 
       else if (reqStrategy === "기본 배차") {
-        // 자차 우선 배차 (마당에 자차와 용차가 함께 있으면 자차 먼저 띄움)
         if (ownDelay === 0 && extDelay === 0) selectedTruck = earliestOwn;
         else if (ownDelay === 0) selectedTruck = earliestOwn;
         else if (extDelay === 0) selectedTruck = earliestExt;
         else selectedTruck = ownDelay <= extDelay ? earliestOwn : earliestExt;
       }
       else if (reqStrategy === "용차 우선") {
-        // [RULE 1] 용차 상한(Cap) 브레이크: 배차될 용차의 회전수가 자차 평균 회전수 이상이면 우선권 박탈
         let isExtCapped = earliestExt && (earliestExt.trips >= avgOwnTrips);
         
         if (isExtCapped || !earliestExt) {
-            // 강제로 '기본 배차(자차 우선)' 로직으로 Fallback
             if (ownDelay === 0 && extDelay === 0) selectedTruck = earliestOwn;
             else if (ownDelay === 0) selectedTruck = earliestOwn;
             else if (extDelay === 0) selectedTruck = earliestExt;
             else selectedTruck = ownDelay <= extDelay ? earliestOwn : earliestExt;
         } else {
-            // [RULE 2] 10분 지연 초과 방지: 용차가 오려면 10분 이상 지연되고, 자차가 용차보다 일찍 오면 뺏어서 배차
-            if (extDelay >= 10 && ownDelay < extDelay) {
-                selectedTruck = earliestOwn;
-            } else {
-                // 정상적으로 용차 우선 배차
-                selectedTruck = earliestExt;
-            }
+            if (extDelay >= 10 && ownDelay < extDelay) selectedTruck = earliestOwn;
+            else selectedTruck = earliestExt;
         }
       }
 
@@ -696,9 +651,7 @@ export default function App() {
       if (actualT > lastOrderMin) return;
 
       let totalDelay = actualT - req.reqTime;
-      if (totalDelay > 0) {
-        delayLogs.push({ siteName: req.siteName, reqTime: req.reqTime, delayMins: totalDelay });
-      }
+      if (totalDelay > 0) delayLogs.push({ siteName: req.siteName, reqTime: req.reqTime, delayMins: totalDelay });
 
       expectedVolume += 6;
       selectedTruck.trips += 1;
@@ -717,11 +670,8 @@ export default function App() {
       const endIdx = Math.floor(Math.min(returnTime - startMin, actualOwnInUse.length - 1));
 
       for (let k = startIdx; k < endIdx; k++) {
-        if (selectedTruck.type === 'own') {
-          actualOwnInUse[k]++;
-        } else {
-          actualExtInUse[k]++;
-        }
+        if (selectedTruck.type === 'own') actualOwnInUse[k]++;
+        else actualExtInUse[k]++;
       }
     });
 
@@ -734,35 +684,21 @@ export default function App() {
 
     for (let m = startMin; m <= endMin; m += 10) {
       const idx = m - startMin;
-      
       const usedOwn = actualOwnInUse[idx] || 0; 
       const usedExt = actualExtInUse[idx] || 0;
-      
       const idealRequired = idealTrucksInUseAtMin[idx] || 0;
       const shortage = Math.max(0, idealRequired - totalTrucks); 
-      
       const availableOwn = Math.max(0, factoryConfig.ownTrucks - usedOwn);
       const availableExt = Math.max(0, factoryConfig.plannedExtTrucks - usedExt);
-      
       const available = availableOwn + availableExt; 
-      
       if (shortage > absoluteMaxShortage) absoluteMaxShortage = shortage;
-      
-      timeSlots.push({ 
-        time: minutesToTime(m), 
-        available, 
-        availableOwn,
-        availableExt,
-        shortage
-      });
+      timeSlots.push({ time: minutesToTime(m), available, availableOwn, availableExt, shortage });
     }
 
     const siteDelaySummary = {};
     delayLogs.forEach(log => {
       const name = log.siteName || "미입력 현장";
-      if (!siteDelaySummary[name]) {
-        siteDelaySummary[name] = { minTime: log.reqTime, maxTime: log.reqTime, maxDelay: log.delayMins, count: 0 };
-      }
+      if (!siteDelaySummary[name]) siteDelaySummary[name] = { minTime: log.reqTime, maxTime: log.reqTime, maxDelay: log.delayMins, count: 0 };
       siteDelaySummary[name].minTime = Math.min(siteDelaySummary[name].minTime, log.reqTime);
       siteDelaySummary[name].maxTime = Math.max(siteDelaySummary[name].maxTime, log.reqTime);
       siteDelaySummary[name].maxDelay = Math.max(siteDelaySummary[name].maxDelay, log.delayMins);
@@ -787,12 +723,7 @@ export default function App() {
     const chartStartK = Math.max(1, totalTrucks - 10);
     const chartEndK = totalTrucks + 10;
     for (let k = chartStartK; k <= chartEndK; k++) {
-      sensitivityData.push({
-        trucks: k,
-        own: Math.min(k, factoryConfig.ownTrucks),
-        ext: Math.max(0, k - factoryConfig.ownTrucks),
-        expectedOutput: simulateDetailedVolume(k).expectedVol
-      });
+      sensitivityData.push({ trucks: k, own: Math.min(k, factoryConfig.ownTrucks), ext: Math.max(0, k - factoryConfig.ownTrucks), expectedOutput: simulateDetailedVolume(k).expectedVol });
     }
 
     const optimalHourlyVols = maxPossibleSim.hourlyVols;
@@ -800,32 +731,22 @@ export default function App() {
     let maxHour = Math.floor(endMin / 60);
     for(let h = maxHour; h >= 7; h--) {
        if((currentHourlyVols[h] || 0) > 0 || (optimalHourlyVols[h] || 0) > 0) {
-          maxHour = h;
-          break;
+          maxHour = h; break;
        }
     }
     
     const hourlyTableData = [];
-    let sumOpt = 0;
-    let sumCur = 0;
+    let sumOpt = 0; let sumCur = 0;
     for(let h = 7; h <= maxHour; h++) {
        const opt = optimalHourlyVols[h] || 0;
        const cur = currentHourlyVols[h] || 0;
-       sumOpt += opt;
-       sumCur += cur;
-       hourlyTableData.push({
-         hour: h,
-         label: `${h}시`,
-         optimal: opt,
-         current: cur,
-         gap: cur - opt
-       });
+       sumOpt += opt; sumCur += cur;
+       hourlyTableData.push({ hour: h, label: `${h}시`, optimal: opt, current: cur, gap: cur - opt });
     }
 
     return { 
       calculatedSites, totalPlannedVolume, expectedOutput, unmetVolume,
-      idealPeakTrucks: trueIdealPeakTrucks,
-      minRequiredTrucks, isBPBottleneck,
+      idealPeakTrucks: trueIdealPeakTrucks, minRequiredTrucks, isBPBottleneck,
       avgTripsOwn, avgTripsExt, timeSlots, totalCapaPerHour, totalActualTrucks: totalTrucks,
       avgProductionInterval, delayReport, sensitivityData, maxPossibleVol, absoluteMaxShortage,
       hourlyTableData, sumOpt, sumCur
@@ -837,14 +758,8 @@ export default function App() {
     const presetName = e.target.value;
     setSelectedPreset(presetName);
     if (FACTORY_PRESETS[presetName]) {
-      setFactoryConfig({ 
-        ...factoryConfig, 
-        ...FACTORY_PRESETS[presetName], 
-        bps: JSON.parse(JSON.stringify(FACTORY_PRESETS[presetName].bps)) 
-      });
+      setFactoryConfig({ ...factoryConfig, ...FACTORY_PRESETS[presetName], bps: JSON.parse(JSON.stringify(FACTORY_PRESETS[presetName].bps)) });
     }
-
-    // 공장이 바뀔 때, 아직 입력하지 않은 빈 현장의 개시시각 기본값도 상황에 맞게 싹 변경합니다.
     const newDefaultTime = (presetName === "송도레미콘" || presetName === "김해공장") ? "07:00" : "08:00";
     setSites(prevSites => prevSites.map(site => {
       if (site.name === "" && site.volume === 0 && (site.startTime === "08:00" || site.startTime === "07:00")) {
@@ -860,7 +775,7 @@ export default function App() {
   
   const addSite = () => {
     const defaultTime = (selectedPreset === "송도레미콘" || selectedPreset === "김해공장") ? "07:00" : "08:00";
-    setSites([...sites, { id: Date.now(), name: "", volume: 0, travelTime: 0, unloadTime: 0, startTime: defaultTime, targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
+    setSites([...sites, { id: Date.now(), name: "", volume: 0, travelTime: 0, startTime: defaultTime, targetInterval: 0, isSpecial: false, specialTime: 0, strategy: "기본 배차" }]);
   };
   const updateSite = (id, field, val) => setSites(sites.map(s => s.id === id ? { ...s, [field]: val } : s));
   const removeSite = (id) => setSites(sites.filter(s => s.id !== id));
@@ -876,13 +791,20 @@ export default function App() {
           <div className="min-w-0 flex-1">
             <h1 className="text-[13px] sm:text-base md:text-xl font-black text-indigo-950 flex items-center gap-1.5 md:gap-2 tracking-tight uppercase truncate">
               <span className="truncate">Eugene MT Flow Optimizer</span>
-              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.57</span>
+              <span className="hidden sm:inline-block text-[10px] md:text-xs bg-indigo-100 px-1.5 py-0.5 md:px-2 rounded text-indigo-600 uppercase font-black shrink-0">v1.59</span>
             </h1>
             <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest hidden md:block mt-0.5 truncate">MT Dispatch Reality Simulator</p>
           </div>
         </div>
         
         <div className="flex gap-1.5 md:gap-3 shrink-0">
+          <button onClick={() => setActiveModal('dataFactory')} className="flex items-center justify-center gap-1.5 md:gap-2 w-9 h-9 md:w-auto md:h-auto md:px-5 md:py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-colors shadow-sm active:scale-95 group shrink-0">
+            <Database size={16} className="group-hover:text-emerald-600" />
+            <span className="hidden md:inline text-xs md:text-sm font-black uppercase">데이터 정제소</span>
+          </button>
+          
+          <div className="w-[1px] h-6 bg-slate-200 self-center hidden md:block mx-1"></div>
+
           <button onClick={handleLegacyShare} className="flex items-center justify-center gap-1.5 md:gap-2 w-9 h-9 md:w-auto md:h-auto md:px-5 md:py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors shadow-sm active:scale-95 group shrink-0">
             <Link size={16} className="group-hover:text-slate-800" />
             <span className="hidden md:inline text-xs md:text-sm font-black uppercase">일반 공유</span>
@@ -969,12 +891,6 @@ export default function App() {
                         <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 relative">
                           <div className="flex items-center gap-1.5 mb-2">
                             <label className="block text-xs font-black text-indigo-500 uppercase tracking-tight">보유 자차 (대)</label>
-                            <div className="relative group/tooltip flex items-center">
-                              <HelpCircle size={14} className="text-indigo-300 cursor-help" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed">
-                                당일 가동 예정인 지입MT 및 직영MT 대수
-                              </div>
-                            </div>
                           </div>
                           <input 
                             type="number" 
@@ -987,12 +903,6 @@ export default function App() {
                         <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 relative">
                           <div className="flex items-center gap-1.5 mb-2">
                             <label className="block text-xs font-black text-orange-500 uppercase tracking-tight">용차 투입예정(대)</label>
-                            <div className="relative group/tooltip flex items-center">
-                              <HelpCircle size={14} className="text-orange-300 cursor-help" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed">
-                                실제 호출하여 운용할 용차 대수. 이 값에 따라 예상 출하량과 회전수가 달라집니다.
-                              </div>
-                            </div>
                           </div>
                           <input 
                             type="number" 
@@ -1008,24 +918,12 @@ export default function App() {
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 relative">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <label className="block text-xs font-bold text-slate-500 uppercase">공장로스(분)</label>
-                            <div className="relative group/tooltip flex items-center">
-                              <HelpCircle size={12} className="text-slate-400 cursor-help" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed">
-                                타설복귀 후 다음 상차시까지의 딜레이타임. (점심시간 30분 별도 적용)
-                              </div>
-                            </div>
                           </div>
                           <input type="number" className="w-full bg-transparent text-lg font-black text-slate-700 outline-none" value={factoryConfig.internalLoss === 0 ? '' : factoryConfig.internalLoss} placeholder="0" onChange={e => setFactoryConfig({...factoryConfig, internalLoss: Number(e.target.value)})}/>
                         </div>
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 relative">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <label className="block text-xs font-bold text-slate-500 uppercase">라스트오더</label>
-                            <div className="relative group/tooltip flex items-center">
-                              <HelpCircle size={12} className="text-slate-400 cursor-help" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-40 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center">
-                                마지막 상차 가능 시각
-                              </div>
-                            </div>
                           </div>
                           <input type="time" className="w-full bg-transparent text-lg font-black text-slate-700 outline-none cursor-pointer p-0 h-[28px]" value={factoryConfig.endTime} onChange={e => setFactoryConfig({...factoryConfig, endTime: e.target.value})} onClick={handleTimeClick} />
                         </div>
@@ -1066,7 +964,8 @@ export default function App() {
                       </div>
                       
                       <div className="grid grid-cols-12">
-                        <div className="col-span-4 p-6 border-r border-slate-100 bg-slate-50/20 space-y-5">
+                        {/* 🌟 좌측 영역 (비율을 4 -> 6으로 늘려서 50% 차지) */}
+                        <div className="col-span-6 p-6 border-r border-slate-100 bg-slate-50/20 space-y-5">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="block text-xs font-black text-slate-400 uppercase mb-2">주문량(㎥)</label>
@@ -1086,27 +985,15 @@ export default function App() {
                           </select>
                         </div>
 
-                        <div className="col-span-8 p-6 space-y-6">
-                          <div className="grid grid-cols-3 gap-4">
-                            {/* [v1.57 수정] 가는시간, 오는시간을 합쳐서 "총 왕복 이동"으로 변경. 타설시간은 "현장 체류"로 명칭 변경 */}
+                        {/* 🌟 우측 영역 (비율을 8 -> 6으로 줄여서 50% 차지, 좌우 완벽 밸런스) */}
+                        <div className="col-span-6 p-6 space-y-5">
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">총 왕복 이동(분)</label>
+                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">총 왕복시간(분)</label>
                               <input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.travelTime === 0 ? '' : site.travelTime} placeholder="0" onChange={e => updateSite(site.id, 'travelTime', Number(e.target.value))} />
                             </div>
                             <div>
-                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-2.5 block">현장 체류(분)</label>
-                              <input type="number" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700" value={site.unloadTime === 0 ? '' : site.unloadTime} placeholder="0" onChange={e => updateSite(site.id, 'unloadTime', Number(e.target.value))} />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-2.5">
-                                <label className="text-[11px] font-black text-indigo-500 uppercase tracking-tighter">요구 간격(분)</label>
-                                <div className="relative group/tooltip flex items-center">
-                                  <HelpCircle size={12} className="text-indigo-400 cursor-help" />
-                                  <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed">
-                                    현장의 원활한 타설(버퍼)을 위해 첫 10대(60㎥)는 간격을 무시하고 공장 최고 속도로 연속 배차되며, 11대째부터 이 간격이 적용됩니다.
-                                  </div>
-                                </div>
-                              </div>
+                              <label className="text-[11px] font-black text-indigo-500 uppercase tracking-tighter mb-2.5 block">요구 간격(분)</label>
                               <input 
                                 type="number" 
                                 className={`w-full p-3 border rounded-xl text-sm font-black outline-none ${site.isCapaShort ? 'bg-red-50 border-red-200 text-red-600' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`} 
@@ -1125,7 +1012,6 @@ export default function App() {
                               </label>
                               {site.isSpecial && <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-xs font-black text-amber-700"><span className="italic">Add:</span><input type="number" className="w-8 bg-transparent outline-none text-center" value={site.specialTime} onChange={e => updateSite(site.id, 'specialTime', Number(e.target.value))} /><span>min</span></div>}
                             </div>
-                            <div className="flex gap-3 text-xs font-black"><div className="text-slate-400"><span className="text-slate-500 uppercase mr-1">왕복시간</span> {site.rt}분</div></div>
                           </div>
                         </div>
                       </div>
@@ -1161,15 +1047,8 @@ export default function App() {
 
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5">
                       <div className="bg-indigo-900/40 p-4 md:p-5 rounded-2xl border border-indigo-800/50 relative overflow-visible flex flex-col">
-                         <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-indigo-500/20 rounded-bl-full" />
                          <div className="flex items-center gap-2 mb-1.5 relative">
                            <p className="text-[11px] md:text-xs text-indigo-400 font-bold uppercase flex items-center gap-1.5"><CheckCircle2 size={14} /> 최대 효율 운용 대수</p>
-                           <div className="relative group/tooltip">
-                              <HelpCircle size={14} className="text-indigo-400 cursor-help" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 shadow-xl pointer-events-none text-center leading-relaxed whitespace-pre-wrap">
-                                B/P 최대 속도와 현장 요구시간을 모두 고려했을 때, 차가 1초도 쉬지 않고 공장을 돌아가게 만들 수 있는 <b>이상적인 최대 필요 대수</b>입니다. 이 이상 차량을 투입해도 출하량은 늘지 않고 마당 대기만 길어집니다.
-                              </div>
-                            </div>
                          </div>
                          <div className="flex items-end gap-2 mb-0.5 mt-1">
                            <p className="text-2xl md:text-3xl font-black text-white">{fmt(analysis.idealPeakTrucks)}<span className="text-xs md:text-sm ml-1.5 font-bold text-indigo-300">대</span></p>
@@ -1185,7 +1064,6 @@ export default function App() {
                          </div>
                       </div>
                       <div className="bg-orange-900/20 p-4 md:p-5 rounded-2xl border border-orange-900/50 relative overflow-visible flex flex-col">
-                         <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 bg-orange-500/10 rounded-bl-full" />
                          <div className="flex items-center gap-2 mb-1.5 relative">
                            <p className="text-[11px] md:text-xs text-orange-400 font-bold uppercase flex items-center gap-1.5"><AlertTriangle size={14} /> 물량 소화 최소 대수</p>
                          </div>
@@ -1260,20 +1138,6 @@ export default function App() {
                             </p>
                           </div>
                         </div>
-                        {analysis.delayReport && analysis.delayReport.length > 0 && (
-                          <div className="w-full mt-3 bg-red-100/50 rounded-2xl p-3 md:p-4">
-                            <p className="text-xs font-black text-red-900 border-b border-red-200 pb-2 mb-2.5">예상 지연 현장 상세</p>
-                            <div className="space-y-1.5">
-                              {analysis.delayReport.map((rpt, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
-                                  <span className="font-bold text-red-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
-                                  <span className="text-red-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                                  <span className="text-red-600 font-black bg-red-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {fmt(rpt.maxDelay)}분 지연</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ) : analysis.totalActualTrucks >= analysis.idealPeakTrucks ? (
                       <div className="p-4 md:p-5 bg-indigo-50 border border-indigo-100 rounded-[1.5rem] md:rounded-3xl flex items-start gap-4 md:gap-5 border-l-4 border-l-indigo-500">
@@ -1296,20 +1160,6 @@ export default function App() {
                             </p>
                           </div>
                         </div>
-                        {analysis.delayReport && analysis.delayReport.length > 0 && (
-                          <div className="w-full mt-3 bg-orange-100/50 rounded-2xl p-3 md:p-4">
-                            <p className="text-xs font-black text-orange-900 border-b border-orange-200 pb-2 mb-2.5">예상 지연 현장 상세</p>
-                            <div className="space-y-1.5">
-                              {analysis.delayReport.map((rpt, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs bg-white/60 px-3 py-2.5 rounded-xl">
-                                  <span className="font-bold text-orange-900 truncate w-[40%] md:w-[45%]">{rpt.siteName}</span>
-                                  <span className="text-orange-700 font-medium tracking-tighter">{rpt.timeRange}</span>
-                                  <span className="text-red-500 font-black bg-orange-100 px-2 py-0.5 rounded-md text-[10px] md:text-xs">최대 {fmt(rpt.maxDelay)}분 지연</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
 
@@ -1337,6 +1187,85 @@ export default function App() {
       {activeModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 md:p-8" onClick={() => setActiveModal(null)}>
 
+          {/* Data Factory Modal */}
+          {activeModal === 'dataFactory' && (
+            <div className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="bg-emerald-950 px-6 py-5 flex justify-between items-center shrink-0">
+                <h2 className="text-white font-black flex items-center gap-2.5 tracking-tight text-lg">
+                  <Database className="text-emerald-400" size={20} /> Data Factory (아웃라이어 정제소)
+                </h2>
+                <button onClick={() => setActiveModal(null)} className="text-emerald-400 hover:text-white transition-colors bg-emerald-900 p-2.5 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-8 overflow-y-auto max-h-[80vh] custom-scrollbar flex flex-col gap-6 bg-slate-50">
+                <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl flex gap-4 items-start">
+                  <Info size={24} className="text-emerald-600 shrink-0" />
+                  <div className="text-sm text-emerald-900 font-medium leading-relaxed">
+                    <p className="font-black mb-1">대용량 Raw 데이터를 브라우저 내에서 즉시 가공합니다.</p>
+                    <p>1. 현장별 이상치(0 이하, GPS 오류 등)를 IQR 통계 기법으로 자동 제거합니다.<br/>
+                    2. 현장별 평균 왕복 시간을 산출합니다.<br/>
+                    3. 동일 공장 내의 시간대별 평균 지연 비율을 추적하여 <strong className="font-black text-emerald-700">시간대별 가중치</strong>를 도출합니다.</p>
+                  </div>
+                </div>
+
+                <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-white hover:border-emerald-500 hover:bg-emerald-50/50 transition-colors">
+                  <Upload size={40} className="text-slate-400 mb-4" />
+                  <p className="text-sm font-black text-slate-700 mb-2">Raw Data (CSV) 업로드</p>
+                  <p className="text-xs text-slate-400 font-medium mb-6">A열: 플랜트명 | B열: 현장코드 | C열: 현장명 | D열: 출하시간(HH:mm) | E열: 주행시간</p>
+                  
+                  <label className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-sm font-black transition-colors shadow-sm cursor-pointer active:scale-95">
+                    CSV 파일 선택
+                    <input type="file" accept=".csv" className="hidden" onChange={handleDataFactoryUpload} ref={dataFactoryInputRef} />
+                  </label>
+                </div>
+
+                {dfStatus === 'processing' && (
+                  <div className="p-6 text-center animate-pulse">
+                    <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-sm font-black text-slate-600">대용량 데이터를 분석하고 아웃라이어를 제거 중입니다...</p>
+                  </div>
+                )}
+
+                {dfStatus === 'done' && dfStats && (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+                    <h3 className="text-sm font-black text-slate-800 mb-4 border-b border-slate-100 pb-3">분석 결과 요약</h3>
+                    
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                      <div className="bg-slate-50 p-4 rounded-xl text-center">
+                        <p className="text-[10px] font-black text-slate-500 uppercase mb-1">총 스캔된 행(Row)</p>
+                        <p className="text-lg font-black text-slate-800">{fmt(dfStats.totalRows)}</p>
+                      </div>
+                      <div className="bg-red-50 p-4 rounded-xl text-center border border-red-100">
+                        <p className="text-[10px] font-black text-red-500 uppercase mb-1">제거된 이상치</p>
+                        <p className="text-lg font-black text-red-600">{fmt(dfStats.outlierRows)}</p>
+                      </div>
+                      <div className="bg-emerald-50 p-4 rounded-xl text-center border border-emerald-100">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1">유효 분석 데이터</p>
+                        <p className="text-lg font-black text-emerald-700">{fmt(dfStats.validRows)}</p>
+                      </div>
+                      <div className="bg-indigo-50 p-4 rounded-xl text-center border border-indigo-100">
+                        <p className="text-[10px] font-black text-indigo-600 uppercase mb-1">도출된 현장 수</p>
+                        <p className="text-lg font-black text-indigo-700">{fmt(dfStats.siteCount)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <button onClick={() => downloadDataFactoryCsv('site')} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black py-3 rounded-xl flex justify-center items-center gap-2 shadow-md">
+                        <Download size={18} /> 현장별 평균시간 다운로드
+                      </button>
+                      <button onClick={() => downloadDataFactoryCsv('weight')} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl flex justify-center items-center gap-2 shadow-md">
+                        <Download size={18} /> 공장별 시간대 가중치 다운로드
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 기존 모달들 (Supply, Sensitivity, HourlyTable) */}
           {['supply', 'sensitivity', 'hourlyTable'].includes(activeModal) && (
             <div className="bg-slate-50 w-full max-w-5xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
               <div className="bg-indigo-950 px-6 md:px-8 py-5 flex justify-between items-center shrink-0">
@@ -1416,9 +1345,6 @@ export default function App() {
                         })}
                       </div>
                     </div>
-                    <p className="text-sm text-slate-500 font-bold text-center bg-slate-50 py-4 rounded-xl border border-slate-100 mt-4">
-                      현재 입력된 총 <strong className="text-indigo-600">{fmt(analysis.totalActualTrucks)}대</strong> 기준 흐름입니다.
-                    </p>
                   </section>
                 )}
 
@@ -1428,9 +1354,6 @@ export default function App() {
                       <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                         <TrendingUp size={20} className="text-indigo-600" /> 차량 증감(±10대)에 따른 출하량 변화
                       </h3>
-                      <div className="flex items-center gap-3 text-xs font-black text-slate-500 uppercase">
-                        <div className="w-8 border-t-2 border-dashed border-emerald-500" /> 예정량 ({fmt(analysis.totalPlannedVolume)}㎥)
-                      </div>
                     </div>
                     
                     <div className="pb-12">
@@ -1440,9 +1363,6 @@ export default function App() {
                             className="absolute left-0 right-0 border-b-2 border-dashed border-emerald-500 z-10 pointer-events-none"
                             style={{ bottom: `${(analysis.totalPlannedVolume / Math.max(analysis.maxPossibleVol, analysis.totalPlannedVolume, 1)) * 100}%` }}
                           >
-                            <span className="absolute bottom-full left-4 mb-2 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded shadow-sm whitespace-nowrap">
-                              예정량: {fmt(analysis.totalPlannedVolume)}㎥
-                            </span>
                           </div>
                         )}
 
@@ -1459,9 +1379,6 @@ export default function App() {
                                 <p className="text-sm font-black text-indigo-400 mb-2 border-b border-slate-700 pb-1.5">총 {fmt(d.trucks)}대 투입 시</p>
                                 <div className="space-y-1.5">
                                   <p className="text-sm font-bold">출하 가능: <strong className={isMeetingTarget ? "text-emerald-400 text-lg" : "text-orange-400 text-lg"}>{fmt(d.expectedOutput)} ㎥</strong></p>
-                                  {d.expectedOutput < analysis.totalPlannedVolume && (
-                                    <p className="text-xs text-red-400 bg-red-950/50 px-2 py-1 rounded-lg">{-1 * (analysis.totalPlannedVolume - d.expectedOutput)} ㎥ 손실</p>
-                                  )}
                                 </div>
                               </div>
 
@@ -1473,28 +1390,10 @@ export default function App() {
                               >
                                 {isCurrent && <div className="absolute -top-9 left-1/2 -translate-x-1/2 text-[11px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 shadow-sm">현재</div>}
                               </div>
-
-                              <div className="absolute top-full mt-3 text-center w-full flex flex-col items-center">
-                                <p className={`text-sm font-black leading-tight ${isCurrent ? 'text-indigo-600' : 'text-slate-600'}`}>{fmt(d.trucks)}</p>
-                                <p className={`text-[11px] font-black tracking-tighter mt-0.5 ${isCurrent ? 'text-orange-600' : 'text-slate-400'}`}>
-                                  {d.ext > 0 ? `+${d.ext}` : '-'}
-                                </p>
-                              </div>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center mt-5">
-                      <p className="text-sm text-slate-500 font-bold bg-slate-50 py-3 px-6 rounded-xl border border-slate-100 flex items-center gap-6">
-                        <span><span className="text-orange-500 font-black">■</span> 물량 손실</span>
-                        <span><span className="text-emerald-500 font-black">■</span> 목표 달성</span>
-                        <span><span className="text-slate-400 font-black">■</span> 공장(B/P) 한계</span>
-                      </p>
-                      <p className="text-xs text-slate-400 font-bold pr-2 tracking-tight">
-                        ※ X축 표기: 총 투입 대수 / (+추가 용차 대수)
-                      </p>
                     </div>
                   </section>
                 )}
@@ -1505,17 +1404,13 @@ export default function App() {
                       <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                         <TableIcon size={20} className="text-indigo-600" /> 시간대별 최적 vs 현재 출하량 비교
                       </h3>
-                      <div className="bg-slate-50 px-4 md:px-5 py-3 rounded-xl border border-slate-200 flex gap-4 text-sm font-black w-fit">
-                        <div className="text-slate-500">예정량 <span className="text-slate-800">{fmt(analysis.totalPlannedVolume)}㎥</span></div>
-                      </div>
                     </div>
 
-                    {/* PC View: Table Layout */}
                     <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 shadow-sm custom-scrollbar">
                       <table className="w-full text-center border-collapse whitespace-nowrap min-w-[800px]">
                         <thead>
                           <tr className="bg-indigo-950 border-b border-indigo-900">
-                            <th className="p-4 text-[13px] font-black text-indigo-200 w-36 border-r border-indigo-900/50 sticky left-0 bg-indigo-950 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">구분 (단위: ㎥)</th>
+                            <th className="p-4 text-[13px] font-black text-indigo-200 w-36 border-r border-indigo-900/50 sticky left-0 bg-indigo-950 z-10">구분 (단위: ㎥)</th>
                             {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                               <th key={d.hour} className="p-4 text-[13px] font-black text-white">{d.label}</th>
                             ))}
@@ -1524,80 +1419,21 @@ export default function App() {
                         </thead>
                         <tbody>
                           <tr className="border-b border-slate-100 bg-white hover:bg-slate-50 transition-colors">
-                            <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">최적 배차시<br/><span className="text-[11px] text-slate-400 font-normal">({analysis.idealPeakTrucks > 0 ? fmt(analysis.idealPeakTrucks) : 'B/P최대'}대)</span></td>
+                            <td className="p-4 text-[13px] font-black text-slate-500 bg-slate-50/90 border-r border-slate-100 sticky left-0 z-10">최적 배차시</td>
                             {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                               <td key={d.hour} className="p-4 text-[15px] font-bold text-slate-700">{d.optimal ? fmt(d.optimal) : '-'}</td>
                             ))}
                             <td className="p-4 text-[16px] font-black text-slate-800 border-l border-slate-100 bg-slate-50/50">{fmt(analysis.sumOpt)}</td>
                           </tr>
                           <tr className="border-b border-slate-200 bg-indigo-50/30 hover:bg-indigo-50 transition-colors">
-                            <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">현재 배차시<br/><span className="text-[11px] text-indigo-400 font-normal">({fmt(analysis.totalActualTrucks)}대)</span></td>
+                            <td className="p-4 text-[13px] font-black text-indigo-700 bg-indigo-50/90 border-r border-indigo-100/50 sticky left-0 z-10">현재 배차시</td>
                             {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
                               <td key={d.hour} className="p-4 text-[15px] font-black text-indigo-900">{d.current ? fmt(d.current) : '-'}</td>
                             ))}
                             <td className="p-4 text-[16px] font-black text-indigo-700 border-l border-indigo-100/50 bg-indigo-50/50">{fmt(analysis.sumCur)}</td>
                           </tr>
-                          <tr className="bg-slate-100/80">
-                            <td className="p-4 text-[13px] font-black text-slate-600 border-r border-slate-200 bg-slate-100/90 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">GAP<br/><span className="text-[11px] text-slate-400 font-normal">(현재 - 최적)</span></td>
-                            {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                              <td key={d.hour} className={`p-4 text-[15px] font-black ${d.gap > 0 ? 'text-emerald-600' : d.gap < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                                {d.gap > 0 ? `+${fmt(d.gap)}` : (d.gap === 0 ? '-' : fmt(d.gap))}
-                              </td>
-                            ))}
-                            <td className={`p-4 text-[16px] font-black border-l border-slate-200 bg-slate-200/50 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                              {analysis.sumCur - analysis.sumOpt > 0 ? `+${fmt(analysis.sumCur - analysis.sumOpt)}` : fmt(analysis.sumCur - analysis.sumOpt)}
-                            </td>
-                          </tr>
                         </tbody>
                       </table>
-                    </div>
-
-                    {/* Mobile View: Vertical Card Layout */}
-                    <div className="md:hidden space-y-3">
-                      {/* Total Summary Card */}
-                      <div className="bg-slate-800 p-4 rounded-[1rem] flex justify-between items-center text-white shadow-md">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-400">Total Sum</span>
-                          <span className="text-base font-black">전체 합계 비교</span>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[11px] font-bold text-slate-300">최적 <strong className="text-white">{fmt(analysis.sumOpt)}</strong> / 현재 <strong className="text-indigo-300">{fmt(analysis.sumCur)}</strong></p>
-                          <p className={`text-lg font-black mt-0.5 ${analysis.sumCur - analysis.sumOpt >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            GAP: {analysis.sumCur - analysis.sumOpt > 0 ? '+' : ''}{fmt(analysis.sumCur - analysis.sumOpt)} ㎥
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Hourly Cards */}
-                      {analysis.hourlyTableData.filter(d => d.hour !== 'total').map(d => (
-                        <div key={d.hour} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2">
-                          <div className="border-b border-slate-100 pb-2 mb-1 flex justify-between items-center">
-                            <span className="font-black text-indigo-900 text-sm">{d.label}</span>
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md ${d.gap > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : d.gap < 0 ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-                              GAP: {d.gap > 0 ? `+${fmt(d.gap)}` : (d.gap === 0 ? '-' : fmt(d.gap))}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-500 font-bold text-xs">최적 배차 기준</span>
-                            <span className="font-black text-slate-700">{d.optimal ? fmt(d.optimal) : '-'} <span className="text-[10px] font-normal text-slate-400">㎥</span></span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-indigo-500 font-bold text-xs">현재 차량 기준</span>
-                            <span className="font-black text-indigo-700">{d.current ? fmt(d.current) : '-'} <span className="text-[10px] font-normal text-indigo-300">㎥</span></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex justify-end mt-6">
-                      <p className="text-sm font-bold text-slate-500 flex items-center gap-2 bg-slate-50 px-5 py-3 rounded-xl border border-slate-100 w-full md:w-auto justify-between md:justify-start">
-                        <span className="text-slate-400 text-xs md:text-sm">최종 예정량 차이:</span>
-                        <span className={`font-black ${analysis.sumCur - analysis.totalPlannedVolume < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                          {analysis.sumCur - analysis.totalPlannedVolume < 0 
-                            ? `${fmt(analysis.sumCur - analysis.totalPlannedVolume)} ㎥ (미달)` 
-                            : '100% 소화 가능'}
-                        </span>
-                      </p>
                     </div>
                   </section>
                 )}
@@ -1620,7 +1456,6 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
         * { font-family: 'Pretendard', 'Inter', sans-serif !important; }
-        
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
